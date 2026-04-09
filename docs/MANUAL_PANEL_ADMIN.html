@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Bridge &mdash; Manual del Panel de Administraci&oacute;n</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+
+        :root {
+            --primary: #1e3a5f;
+            --primary-dark: #0f2440;
+            --primary-light: #2a5080;
+            --accent: #0891b2;
+            --accent-light: #22d3ee;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --white: #ffffff;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--white);
+            color: var(--gray-700);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 48px 56px;
+        }
+
+        /* ─── COVER ─── */
+        .cover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+            color: white;
+            padding: 60px 56px;
+            margin: -48px -56px 48px -56px;
+            position: relative;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -5%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(8,145,178,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .cover-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-logo {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        .cover-meta {
+            text-align: right;
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .cover h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover .subtitle {
+            font-size: 15px;
+            color: rgba(255,255,255,0.65);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── TOC ─── */
+        .toc {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 28px 32px;
+            margin-bottom: 40px;
+        }
+
+        .toc h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gray-400);
+            margin-bottom: 16px;
+        }
+
+        .toc ol {
+            padding-left: 20px;
+        }
+
+        .toc li {
+            padding: 4px 0;
+            font-size: 13.5px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .toc li a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .toc li a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        /* ─── SECTIONS ─── */
+        .section {
+            margin-bottom: 44px;
+            page-break-inside: avoid;
+        }
+
+        .section-number {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        .section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--gray-200);
+            display: inline;
+            vertical-align: middle;
+        }
+
+        .section-intro {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+            margin-top: 16px;
+        }
+
+        /* ─── SUBSECTIONS ─── */
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            margin-top: 24px;
+        }
+
+        h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 6px;
+            margin-top: 16px;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        /* ─── INFO BOXES ─── */
+        .info-box {
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin: 14px 0;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .info-box.tip {
+            background: rgba(8,145,178,0.06);
+            border: 1px solid rgba(8,145,178,0.2);
+        }
+
+        .info-box.tip strong { color: var(--accent); }
+
+        .info-box.warning {
+            background: rgba(217,119,6,0.06);
+            border: 1px solid rgba(217,119,6,0.2);
+        }
+
+        .info-box.warning strong { color: var(--warning); }
+
+        .info-box.important {
+            background: rgba(220,38,38,0.05);
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+
+        .info-box.important strong { color: var(--danger); }
+
+        /* ─── FEATURE TABLE ─── */
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 13px;
+        }
+
+        .feature-table thead {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .feature-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .feature-table th:first-child { border-radius: 6px 0 0 0; }
+        .feature-table th:last-child { border-radius: 0 6px 0 0; }
+
+        .feature-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .feature-table td strong {
+            color: var(--gray-800);
+        }
+
+        .feature-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* ─── BADGES ─── */
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .badge.green { background: rgba(5,150,105,0.1); color: var(--success); }
+        .badge.red { background: rgba(220,38,38,0.1); color: var(--danger); }
+        .badge.amber { background: rgba(217,119,6,0.1); color: var(--warning); }
+        .badge.blue { background: rgba(30,58,95,0.1); color: var(--primary); }
+        .badge.teal { background: rgba(8,145,178,0.1); color: var(--accent); }
+
+        /* ─── STEPS ─── */
+        .how-to {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin: 14px 0;
+        }
+
+        .how-to h4 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .how-to ol {
+            padding-left: 20px;
+        }
+
+        .how-to li {
+            padding: 4px 0;
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        /* ─── SIDEBAR DIAGRAM ─── */
+        .sidebar-diagram {
+            background: var(--gray-800);
+            color: var(--gray-300);
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.8;
+            margin: 14px 0;
+        }
+
+        .sidebar-diagram .menu-item {
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+
+        .sidebar-diagram .menu-item.active {
+            background: rgba(59,130,246,0.2);
+            color: white;
+        }
+
+        .sidebar-diagram .status {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 11px;
+        }
+
+        .sidebar-diagram .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .sidebar-diagram .dot.green { background: #22c55e; }
+        .sidebar-diagram .dot.amber { background: #f59e0b; }
+        .sidebar-diagram .dot.red { background: #ef4444; }
+
+        /* ─── SCREENSHOT PLACEHOLDER ─── */
+        .screen-placeholder {
+            background: var(--gray-50);
+            border: 2px dashed var(--gray-200);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 13px;
+            margin: 14px 0;
+        }
+
+        /* ─── FOOTER ─── */
+        .doc-footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+
+        /* ─── PRINT ─── */
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { padding: 32px 40px; }
+            .cover { margin: -32px -40px 32px -40px; padding: 40px; }
+            .section { page-break-inside: avoid; }
+        }
+
+        /* ─── UL ─── */
+        ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        ul li {
+            padding: 2px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- ═══════ COVER ═══════ -->
+    <div class="cover">
+        <div class="cover-top">
+            <div class="cover-logo">SmartGroup</div>
+            <div class="cover-meta">Versi&oacute;n 1.0<br>Marzo 2026</div>
+        </div>
+        <h1>Manual del Panel de Administraci&oacute;n</h1>
+        <p class="subtitle">Gu&iacute;a completa para el uso del panel de supervisi&oacute;n y gesti&oacute;n de Audio Bridge</p>
+    </div>
+
+    <!-- ═══════ TOC ═══════ -->
+    <div class="toc">
+        <h3>&Iacute;ndice</h3>
+        <ol>
+            <li><a href="#acceso">Acceso al panel</a></li>
+            <li><a href="#sidebar">Navegaci&oacute;n principal</a></li>
+            <li><a href="#dashboard">Dashboard</a></li>
+            <li><a href="#activas">Llamadas activas (en vivo)</a></li>
+            <li><a href="#historial">Historial de llamadas</a></li>
+            <li><a href="#detalle">Detalle de llamada</a></li>
+            <li><a href="#notarias">Gesti&oacute;n de notar&iacute;as</a></li>
+            <li><a href="#grabaciones">Grabaciones</a></li>
+            <li><a href="#config">Configuraci&oacute;n</a></li>
+            <li><a href="#estados">Referencia de estados y colores</a></li>
+        </ol>
+    </div>
+
+    <!-- ═══════ 1. ACCESO ═══════ -->
+    <div class="section" id="acceso">
+        <span class="section-number">1</span>
+        <h2>Acceso al panel</h2>
+        <p class="section-intro">El panel de administraci&oacute;n se accede mediante un navegador web.</p>
+
+        <h3>Direcci&oacute;n de acceso</h3>
+        <p>Abra su navegador e introduzca la direcci&oacute;n del servidor seguida del puerto <strong>8080</strong>:</p>
+        <div style="background: var(--gray-900); color: var(--accent-light); border-radius: 6px; padding: 12px 20px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+            http://[IP-DEL-SERVIDOR]:8080
+        </div>
+
+        <h3>Inicio de sesi&oacute;n</h3>
+        <p>La pantalla de login solicita &uacute;nicamente una <strong>contrase&ntilde;a</strong>. No existe campo de usuario.</p>
+
+        <div class="how-to">
+            <h4>Pasos</h4>
+            <ol>
+                <li>Introduzca la contrase&ntilde;a proporcionada por el administrador del sistema.</li>
+                <li>Pulse <strong>&laquo;Acceder&raquo;</strong>.</li>
+                <li>Si la contrase&ntilde;a es correcta, ser&aacute; redirigido al Dashboard.</li>
+                <li>Si es incorrecta, aparecer&aacute; un mensaje de error en rojo.</li>
+            </ol>
+        </div>
+
+        <div class="info-box tip">
+            <strong>Nota:</strong> La sesi&oacute;n se mantiene activa mediante un token de 24 horas. Si el token expira, el sistema le redirigir&aacute; autom&aacute;ticamente a la pantalla de login.
+        </div>
+
+        <h3>Cerrar sesi&oacute;n</h3>
+        <p>Para cerrar sesi&oacute;n, pulse el bot&oacute;n <strong>&laquo;Cerrar Sesi&oacute;n&raquo;</strong> en la parte inferior de la barra lateral izquierda.</p>
+    </div>
+
+    <!-- ═══════ 2. SIDEBAR ═══════ -->
+    <div class="section" id="sidebar">
+        <span class="section-number">2</span>
+        <h2>Navegaci&oacute;n principal</h2>
+        <p class="section-intro">La barra lateral izquierda permite acceder a todas las secciones del panel.</p>
+
+        <div class="sidebar-diagram">
+            <div style="font-weight: 700; color: white; margin-bottom: 8px;">Audio Bridge</div>
+            <div style="font-size: 11px; color: var(--accent-light); margin-bottom: 12px;">Panel de Administraci&oacute;n</div>
+            <div class="menu-item active">Dashboard</div>
+            <div class="menu-item">Llamadas Activas &nbsp;<span style="background: var(--accent-light); color: var(--gray-800); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px;">3</span></div>
+            <div class="menu-item">Historial</div>
+            <div class="menu-item">Notar&iacute;as</div>
+            <div class="menu-item">Grabaciones</div>
+            <div class="menu-item">Configuraci&oacute;n</div>
+            <div class="status">
+                <span class="dot green"></span> En vivo
+            </div>
+        </div>
+
+        <table class="feature-table">
+            <thead>
+                <tr>
+                    <th>Secci&oacute;n</th>
+                    <th>Funci&oacute;n</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Dashboard</strong></td><td>Estad&iacute;sticas generales y resumen del d&iacute;a</td></tr>
+                <tr><td><strong>Llamadas Activas</strong></td><td>Monitorizaci&oacute;n en tiempo real con transcripci&oacute;n en vivo</td></tr>
+                <tr><td><strong>Historial</strong></td><td>B&uacute;squeda y consulta de llamadas pasadas</td></tr>
+                <tr><td><strong>Notar&iacute;as</strong></td><td>Alta, edici&oacute;n y baja de notar&iacute;as (tenants)</td></tr>
+                <tr><td><strong>Grabaciones</strong></td><td>Reproducci&oacute;n de audio grabado</td></tr>
+                <tr><td><strong>Configuraci&oacute;n</strong></td><td>Ajustes de grabaci&oacute;n y nivel de log</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Indicador de conexi&oacute;n</h3>
+        <p>En la parte inferior de la barra lateral se muestra el estado de la conexi&oacute;n en tiempo real (SSE):</p>
+        <ul>
+            <li><span class="badge green">En vivo</span> &mdash; Conectado al servidor, recibiendo eventos en tiempo real.</li>
+            <li><span class="badge amber">Conectando...</span> &mdash; Intentando establecer conexi&oacute;n.</li>
+            <li><span class="badge red">Desconectado</span> &mdash; Sin conexi&oacute;n. Los datos no se actualizan autom&aacute;ticamente.</li>
+        </ul>
+    </div>
+
+    <!-- ═══════ 3. DASHBOARD ═══════ -->
+    <div class="section" id="dashboard">
+        <span class="section-number">3</span>
+        <h2>Dashboard</h2>
+        <p class="section-intro">Pantalla principal con las m&eacute;tricas clave del d&iacute;a.</p>
+
+        <h3>Tarjetas de estad&iacute;sticas</h3>
+        <p>En la parte superior se muestran cuatro indicadores principales:</p>
+
+        <table class="feature-table">
+            <thead>
+                <tr><th>Indicador</th><th>Qu&eacute; muestra</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Llamadas Hoy</strong></td><td>Total de llamadas recibidas y realizadas en el d&iacute;a actual.</td></tr>
+                <tr><td><strong>Activas Ahora</strong></td><td>N&uacute;mero de llamadas en curso en este momento.</td></tr>
+                <tr><td><strong>Duraci&oacute;n Media</strong></td><td>Promedio de duraci&oacute;n de las llamadas del d&iacute;a (formato: Xm Ys).</td></tr>
+                <tr><td><strong>Total Hist&oacute;rico</strong></td><td>N&uacute;mero total de llamadas registradas desde el inicio del sistema.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Desglose por tipo</h3>
+        <p>Se muestra la cantidad de llamadas <strong>entrantes</strong> y <strong>salientes</strong> del d&iacute;a actual en dos cajas destacadas.</p>
+
+        <h3>Llamadas por notar&iacute;a</h3>
+        <p>Gr&aacute;fico de barras horizontales que muestra cu&aacute;ntas llamadas ha recibido cada notar&iacute;a hoy, con porcentaje relativo.</p>
+
+        <div class="info-box tip">
+            <strong>Actualizaci&oacute;n:</strong> Los datos del Dashboard se refrescan autom&aacute;ticamente cada 30 segundos.
+        </div>
+    </div>
+
+    <!-- ═══════ 4. LLAMADAS ACTIVAS ═══════ -->
+    <div class="section" id="activas">
+        <span class="section-number">4</span>
+        <h2>Llamadas activas (en vivo)</h2>
+        <p class="section-intro">Supervisi&oacute;n en tiempo real de todas las llamadas que est&aacute;n siendo atendidas por la IA en este momento.</p>
+
+        <h3>Vista general</h3>
+        <p>Las llamadas activas se muestran como <strong>tarjetas individuales</strong> en una cuadr&iacute;cula. Cada tarjeta muestra:</p>
+        <ul>
+            <li><strong>N&uacute;mero del llamante</strong></li>
+            <li><strong>Notar&iacute;a</strong> a la que pertenece</li>
+            <li><strong>Direcci&oacute;n</strong>: entrante o saliente</li>
+            <li><strong>Duraci&oacute;n en vivo</strong> (se actualiza cada segundo)</li>
+            <li><strong>Estado</strong> de la llamada (sonando, conectada, transfiriendo...)</li>
+            <li>&Uacute;ltimas l&iacute;neas de la <strong>transcripci&oacute;n</strong></li>
+        </ul>
+
+        <h3>Transcripci&oacute;n en vivo</h3>
+        <p>Al hacer <strong>clic en una tarjeta</strong>, se abre un panel lateral con la transcripci&oacute;n completa en formato de chat:</p>
+        <ul>
+            <li><strong>Mensajes del llamante</strong>: burbujas a la izquierda (azul).</li>
+            <li><strong>Respuestas de la IA</strong>: burbujas a la derecha (cian).</li>
+            <li>Cada mensaje incluye la hora exacta.</li>
+            <li>El panel hace scroll autom&aacute;tico al &uacute;ltimo mensaje.</li>
+        </ul>
+
+        <div class="info-box tip">
+            <strong>Tiempo real:</strong> La transcripci&oacute;n se actualiza al instante v&iacute;a SSE (Server-Sent Events). No es necesario refrescar la p&aacute;gina.
+        </div>
+
+        <p>Si no hay llamadas activas, se muestra el mensaje: <em>&laquo;Sin llamadas activas &mdash; aparecer&aacute;n aqu&iacute; en tiempo real&raquo;</em>.</p>
+    </div>
+
+    <!-- ═══════ 5. HISTORIAL ═══════ -->
+    <div class="section" id="historial">
+        <span class="section-number">5</span>
+        <h2>Historial de llamadas</h2>
+        <p class="section-intro">Consulta y b&uacute;squeda de todas las llamadas pasadas con filtros avanzados.</p>
+
+        <h3>Filtros disponibles</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Filtro</th><th>Descripci&oacute;n</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Notar&iacute;a</strong></td><td>Desplegable para seleccionar una notar&iacute;a espec&iacute;fica o ver todas.</td></tr>
+                <tr><td><strong>Desde</strong></td><td>Fecha de inicio del rango de b&uacute;squeda.</td></tr>
+                <tr><td><strong>Hasta</strong></td><td>Fecha de fin del rango de b&uacute;squeda.</td></tr>
+                <tr><td><strong>Limpiar</strong></td><td>Bot&oacute;n para resetear todos los filtros a su valor por defecto.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Tabla de resultados</h3>
+        <p>La tabla muestra las siguientes columnas:</p>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Columna</th><th>Contenido</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>ID</strong></td><td>Identificador &uacute;nico (primeros 8 caracteres).</td></tr>
+                <tr><td><strong>Llamante</strong></td><td>N&uacute;mero de tel&eacute;fono del llamante.</td></tr>
+                <tr><td><strong>Notar&iacute;a</strong></td><td>Identificador de la notar&iacute;a.</td></tr>
+                <tr><td><strong>Direcci&oacute;n</strong></td><td><span class="badge blue">Entrante</span> o <span class="badge teal">Saliente</span></td></tr>
+                <tr><td><strong>Duraci&oacute;n</strong></td><td>Formato: Xm Ys (ej: 3m 42s).</td></tr>
+                <tr><td><strong>Estado</strong></td><td>Estado final de la llamada (completada, fallida, etc.).</td></tr>
+                <tr><td><strong>Motivo</strong></td><td>Raz&oacute;n de finalizaci&oacute;n (resolved, transfer, etc.).</td></tr>
+                <tr><td><strong>Fecha</strong></td><td>Fecha y hora de inicio (DD/MM/YYYY HH:mm).</td></tr>
+            </tbody>
+        </table>
+
+        <div class="how-to">
+            <h4>Para ver el detalle de una llamada</h4>
+            <ol>
+                <li>Localice la llamada en la tabla.</li>
+                <li>Haga <strong>clic en la fila</strong> de la llamada.</li>
+                <li>Se abrir&aacute; la pantalla de detalle con toda la informaci&oacute;n.</li>
+            </ol>
+        </div>
+
+        <h3>Paginaci&oacute;n</h3>
+        <p>Los resultados se muestran en p&aacute;ginas de <strong>20 registros</strong>. Use los botones <strong>Anterior</strong> y <strong>Siguiente</strong> en la parte inferior para navegar.</p>
+    </div>
+
+    <!-- ═══════ 6. DETALLE ═══════ -->
+    <div class="section" id="detalle">
+        <span class="section-number">6</span>
+        <h2>Detalle de llamada</h2>
+        <p class="section-intro">Informaci&oacute;n completa de una llamada individual.</p>
+
+        <h3>Metadatos</h3>
+        <p>En la parte superior se muestra una cuadr&iacute;cula con la informaci&oacute;n general:</p>
+        <ul>
+            <li><strong>ID</strong> de la llamada</li>
+            <li><strong>N&uacute;mero del llamante</strong></li>
+            <li><strong>Notar&iacute;a</strong> asociada</li>
+            <li><strong>DDI</strong> marcado</li>
+            <li><strong>Direcci&oacute;n</strong> (entrante / saliente)</li>
+            <li><strong>Duraci&oacute;n</strong> total</li>
+            <li><strong>Fecha y hora</strong> de inicio</li>
+            <li><strong>Motivo de finalizaci&oacute;n</strong></li>
+            <li><strong>Destino de transferencia</strong> (si aplica)</li>
+        </ul>
+
+        <h3>Transcripciones</h3>
+        <p>Dos columnas lado a lado:</p>
+        <ul>
+            <li><strong>Transcripci&oacute;n del llamante</strong> (izquierda, fondo azul claro): lo que dijo el ciudadano.</li>
+            <li><strong>Transcripci&oacute;n de la IA</strong> (derecha, fondo cian claro): lo que respondi&oacute; la IA.</li>
+        </ul>
+
+        <h3>Registro de interacciones</h3>
+        <p>Si existen logs detallados, se muestra una tabla con el timestamp, direcci&oacute;n (usuario/IA), tipo de evento y contenido de cada interacci&oacute;n.</p>
+
+        <h3>Grabaciones</h3>
+        <p>Si la llamada fue grabada, se muestran dos reproductores de audio:</p>
+        <ul>
+            <li><strong>Audio del llamante</strong>: lo que dijo el ciudadano.</li>
+            <li><strong>Audio de la IA</strong>: lo que respondi&oacute; el sistema.</li>
+        </ul>
+        <p>Ambos reproductores permiten reproducir, pausar y navegar por el audio directamente desde el navegador.</p>
+
+        <div class="info-box tip">
+            <strong>Navegaci&oacute;n:</strong> Pulse <strong>&laquo;&larr; Volver al historial&raquo;</strong> en la parte superior para regresar a la lista de llamadas.
+        </div>
+    </div>
+
+    <!-- ═══════ 7. NOTARÍAS ═══════ -->
+    <div class="section" id="notarias">
+        <span class="section-number">7</span>
+        <h2>Gesti&oacute;n de notar&iacute;as</h2>
+        <p class="section-intro">Alta, edici&oacute;n y baja de notar&iacute;as configuradas en el sistema.</p>
+
+        <h3>Tabla de notar&iacute;as</h3>
+        <p>Se muestra un listado con todas las notar&iacute;as registradas:</p>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Columna</th><th>Contenido</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>ID Notar&iacute;a</strong></td><td>Identificador &uacute;nico (ej: N001).</td></tr>
+                <tr><td><strong>Nombre</strong></td><td>Nombre completo de la notar&iacute;a.</td></tr>
+                <tr><td><strong>DDIs</strong></td><td>N&uacute;meros de tel&eacute;fono asociados.</td></tr>
+                <tr><td><strong>SIP Trunk</strong></td><td>Trunk SIP asignado.</td></tr>
+                <tr><td><strong>Estado</strong></td><td><span class="badge green">Activa</span> o <span class="badge red">Inactiva</span></td></tr>
+                <tr><td><strong>Acciones</strong></td><td>Editar / Eliminar</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Crear una notar&iacute;a</h3>
+        <div class="how-to">
+            <h4>Pasos</h4>
+            <ol>
+                <li>Pulse el bot&oacute;n <strong>&laquo;+ Crear Notar&iacute;a&raquo;</strong> en la esquina superior derecha.</li>
+                <li>Se abrir&aacute; un formulario con los siguientes campos:</li>
+            </ol>
+        </div>
+
+        <table class="feature-table">
+            <thead>
+                <tr><th>Campo</th><th>Descripci&oacute;n</th><th>Ejemplo</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>ID Notar&iacute;a</strong></td><td>Identificador &uacute;nico. No se puede cambiar despu&eacute;s.</td><td>N003</td></tr>
+                <tr><td><strong>Nombre</strong></td><td>Nombre descriptivo de la notar&iacute;a.</td><td>Notar&iacute;a P&eacute;rez - Valencia</td></tr>
+                <tr><td><strong>DDIs</strong></td><td>N&uacute;meros de tel&eacute;fono, separados por comas.</td><td>963001234, 963001235</td></tr>
+                <tr><td><strong>SIP Trunk</strong></td><td>Identificador del trunk SIP.</td><td>trunk-principal</td></tr>
+                <tr><td><strong>Habilitada</strong></td><td>Interruptor para activar/desactivar.</td><td>S&iacute;</td></tr>
+                <tr><td><strong>Horario</strong></td><td>Zona horaria y franjas de atenci&oacute;n.</td><td>L-V 09:00&ndash;14:00</td></tr>
+                <tr><td><strong>Extensi&oacute;n por defecto</strong></td><td>Extensi&oacute;n a la que transferir si la IA lo solicita.</td><td>201</td></tr>
+                <tr><td><strong>Group Hunt</strong></td><td>Extensi&oacute;n de grupo de salto.</td><td>300</td></tr>
+            </tbody>
+        </table>
+
+        <p>Pulse <strong>&laquo;Crear&raquo;</strong> para guardar o <strong>&laquo;Cancelar&raquo;</strong> para descartar.</p>
+
+        <h3>Editar una notar&iacute;a</h3>
+        <p>Pulse <strong>&laquo;Editar&raquo;</strong> en la fila correspondiente. Se abrir&aacute; el mismo formulario con los datos actuales precargados. El campo ID no se puede modificar.</p>
+
+        <h3>Eliminar una notar&iacute;a</h3>
+        <div class="info-box warning">
+            <strong>Precauci&oacute;n:</strong> Al eliminar una notar&iacute;a, el sistema pedir&aacute; confirmaci&oacute;n. Esta acci&oacute;n <strong>no se puede deshacer</strong>. Las llamadas hist&oacute;ricas asociadas se mantienen en el sistema.
+        </div>
+    </div>
+
+    <!-- ═══════ 8. GRABACIONES ═══════ -->
+    <div class="section" id="grabaciones">
+        <span class="section-number">8</span>
+        <h2>Grabaciones</h2>
+        <p class="section-intro">Acceso y reproducci&oacute;n de las grabaciones de audio de las llamadas.</p>
+
+        <p>La tabla muestra todas las llamadas que disponen de grabaci&oacute;n, con las siguientes columnas:</p>
+
+        <table class="feature-table">
+            <thead>
+                <tr><th>Columna</th><th>Contenido</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>ID</strong></td><td>Link al detalle de la llamada.</td></tr>
+                <tr><td><strong>Llamante</strong></td><td>N&uacute;mero del ciudadano.</td></tr>
+                <tr><td><strong>Notar&iacute;a</strong></td><td>Notar&iacute;a asociada.</td></tr>
+                <tr><td><strong>Duraci&oacute;n</strong></td><td>Duraci&oacute;n total de la llamada.</td></tr>
+                <tr><td><strong>Fecha</strong></td><td>Fecha y hora de la llamada.</td></tr>
+                <tr><td><strong>Audio Llamante</strong></td><td>Reproductor del canal del ciudadano.</td></tr>
+                <tr><td><strong>Audio IA</strong></td><td>Reproductor del canal de la IA.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="info-box tip">
+            <strong>Grabaci&oacute;n dual:</strong> Cada llamada genera dos archivos WAV independientes &mdash; uno con el audio del llamante y otro con el audio de la IA. Esto facilita la auditor&iacute;a y el an&aacute;lisis por separado.
+        </div>
+
+        <p>Los reproductores permiten <strong>reproducir</strong>, <strong>pausar</strong> y <strong>avanzar/retroceder</strong> directamente desde el navegador, sin necesidad de descargar archivos.</p>
+    </div>
+
+    <!-- ═══════ 9. CONFIGURACIÓN ═══════ -->
+    <div class="section" id="config">
+        <span class="section-number">9</span>
+        <h2>Configuraci&oacute;n</h2>
+        <p class="section-intro">Ajustes modificables y vista de la configuraci&oacute;n actual del sistema.</p>
+
+        <h3>Ajustes editables</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Ajuste</th><th>Opciones</th><th>Descripci&oacute;n</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Grabaci&oacute;n</strong></td><td>Habilitada / Deshabilitada</td><td>Activa o desactiva la grabaci&oacute;n de audio de las llamadas.</td></tr>
+                <tr><td><strong>Nivel de Log</strong></td><td>Debug, Info, Warn, Error</td><td>Controla el nivel de detalle del registro de eventos del sistema.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="how-to">
+            <h4>Para modificar un ajuste</h4>
+            <ol>
+                <li>Modifique el valor deseado (interruptor o desplegable).</li>
+                <li>Pulse <strong>&laquo;Guardar Cambios&raquo;</strong>.</li>
+                <li>Aparecer&aacute; un mensaje de confirmaci&oacute;n en verde si se guard&oacute; correctamente.</li>
+            </ol>
+        </div>
+
+        <h3>Configuraci&oacute;n actual (solo lectura)</h3>
+        <p>En la parte inferior de la pantalla se muestra la configuraci&oacute;n completa del sistema, organizada en secciones:</p>
+
+        <table class="feature-table">
+            <thead>
+                <tr><th>Secci&oacute;n</th><th>Informaci&oacute;n mostrada</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Servidor</strong></td><td>Direcci&oacute;n del AudioSocket, m&aacute;ximo de llamadas concurrentes.</td></tr>
+                <tr><td><strong>IA</strong></td><td>Tipo, modelo, voz, idioma, reintentos de llamadas salientes.</td></tr>
+                <tr><td><strong>Audio</strong></td><td>Sample rate, bit depth, canales, c&oacute;dec, tama&ntilde;o de frame.</td></tr>
+                <tr><td><strong>Grabaci&oacute;n</strong></td><td>Estado (habilitada/deshabilitada) y ruta de almacenamiento.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="info-box warning">
+            <strong>Nota:</strong> La configuraci&oacute;n del servidor, IA y audio solo puede modificarse editando el archivo <code>config.yaml</code> directamente y reiniciando el servicio. Desde el panel solo se pueden cambiar la grabaci&oacute;n y el nivel de log.
+        </div>
+    </div>
+
+    <!-- ═══════ 10. REFERENCIA ESTADOS ═══════ -->
+    <div class="section" id="estados">
+        <span class="section-number">10</span>
+        <h2>Referencia de estados y colores</h2>
+        <p class="section-intro">Gu&iacute;a r&aacute;pida de los indicadores visuales utilizados en el panel.</p>
+
+        <h3>Estados de llamada</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Estado</th><th>Color</th><th>Significado</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Completada</strong></td><td><span class="badge green">Verde</span></td><td>La llamada finaliz&oacute; correctamente.</td></tr>
+                <tr><td><strong>Sonando</strong></td><td><span class="badge amber">&Aacute;mbar</span></td><td>La llamada est&aacute; sonando, a&uacute;n no ha sido atendida.</td></tr>
+                <tr><td><strong>Conectada / En curso</strong></td><td><span class="badge green">Verde</span></td><td>La llamada est&aacute; activa y siendo atendida por la IA.</td></tr>
+                <tr><td><strong>Transfiriendo</strong></td><td><span class="badge blue">Azul</span></td><td>La llamada est&aacute; siendo transferida a una extensi&oacute;n humana.</td></tr>
+                <tr><td><strong>Fallida</strong></td><td><span class="badge red">Rojo</span></td><td>La llamada no pudo completarse (error, timeout, etc.).</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Motivos de finalizaci&oacute;n</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Motivo</th><th>Significado</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>resolved</strong></td><td>La IA resolvi&oacute; la consulta satisfactoriamente.</td></tr>
+                <tr><td><strong>transfer</strong></td><td>La llamada fue transferida a una extensi&oacute;n humana.</td></tr>
+                <tr><td><strong>hangup</strong></td><td>El llamante colg&oacute; la llamada.</td></tr>
+                <tr><td><strong>timeout</strong></td><td>La llamada super&oacute; el tiempo m&aacute;ximo sin respuesta.</td></tr>
+                <tr><td><strong>error</strong></td><td>Se produjo un error durante la llamada.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Direcci&oacute;n de llamada</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Tipo</th><th>Color</th><th>Significado</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Entrante</strong></td><td><span class="badge blue">Azul</span></td><td>Llamada recibida de un ciudadano.</td></tr>
+                <tr><td><strong>Saliente</strong></td><td><span class="badge teal">Cian</span></td><td>Llamada realizada por el sistema (callback).</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Conexi&oacute;n SSE</h3>
+        <table class="feature-table">
+            <thead>
+                <tr><th>Estado</th><th>Indicador</th><th>Significado</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>En vivo</strong></td><td><span class="badge green">Verde pulsante</span></td><td>Conexi&oacute;n activa, datos en tiempo real.</td></tr>
+                <tr><td><strong>Conectando</strong></td><td><span class="badge amber">&Aacute;mbar pulsante</span></td><td>Intentando restablecer conexi&oacute;n.</td></tr>
+                <tr><td><strong>Desconectado</strong></td><td><span class="badge red">Rojo</span></td><td>Sin conexi&oacute;n con el servidor.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══════ FOOTER ═══════ -->
+    <div class="doc-footer">
+        <span><strong>SmartGroup</strong> &bull; Audio Bridge &bull; Manual del Panel de Administraci&oacute;n v1.0</span>
+        <span>Marzo 2026 &bull; Confidencial</span>
+    </div>
+
+</div>
+
+</body>
+</html>

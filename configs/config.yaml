@@ -1,0 +1,124 @@
+# =============================================================================
+# Audio Bridge - Configuration
+# Smartgroup - Proyecto Automatizacion Notarias
+# =============================================================================
+
+server:
+  audiosocket_addr: "0.0.0.0:9092"
+  max_concurrent: 50
+
+# --- Asterisk AMI connection ---
+asterisk:
+  ami_host: "192.168.1.10"
+  ami_port: 5038
+  ami_user: "bridge"
+  ami_password: "changeme_ami_password"
+
+# --- AI Module connection (WSS) ---
+ai:
+  type: "openai"                       # "openai" or "custom"
+  endpoint: "wss://api.openai.com/v1/realtime"
+  auth_type: "api_key"
+  api_key: "changeme_ai_api_key"
+  bearer_token: ""
+  timeout_sec: 3
+  model: "gpt-4o-realtime-preview"
+  voice: "coral"
+  language: "es"
+  instructions: ""                     # empty = use default Spanish notary prompt
+  originate_retries: 3
+  originate_retry_interval_sec: 30
+
+# --- Audio format ---
+audio:
+  sample_rate: 8000
+  bit_depth: 16
+  channels: 1
+  codec: "pcm_s16le"
+  frame_size_ms: 20
+
+# --- REST API ---
+api:
+  addr: "0.0.0.0:8080"
+  api_key: "changeme_api_key"
+  public_url: ""  # Public base URL for recording download links (e.g. "https://bridge.smartgroup.es")
+
+# --- Webhooks (CTN notifications) ---
+webhook:
+  enabled: false
+  url: ""            # CTN webhook endpoint (e.g. "https://api.ctn.es/webhooks/calls")
+  api_key: ""        # Sent as X-API-Key header
+  timeout_sec: 10
+  retry_count: 3
+
+# --- Database ---
+database:
+  path: "/opt/audio-bridge/data/bridge.db"
+
+# --- Recording ---
+recording:
+  enabled: true
+  path: "/opt/audio-bridge/recordings"
+
+# --- Admin Panel ---
+# Use password_hash (bcrypt) for production. Generate with:
+#   htpasswd -nbBC 12 "" 'YourPassword' | cut -d: -f2
+# If password_hash is set, plaintext password is ignored.
+admin:
+  password: "SmartBridge2026!"
+  password_hash: ""  # Set bcrypt hash here for production
+
+# --- Logging ---
+logging:
+  level: "info"
+  format: "json"
+
+# =============================================================================
+# Tenants (Notarias)
+# =============================================================================
+tenants:
+  - notaria_id: "N001"
+    name: "Notaria Garcia Lopez - Barcelona"
+    ddis:
+      - "934001234"
+      - "934001235"
+    enabled: true
+    sip_trunk: "trunk-notaria-n001"
+    voice: "sage"                        # override global voice (empty = use global)
+    language: "ca"                       # override global language (empty = use global)
+    instructions: ""                     # custom AI prompt (empty = default notary prompt)
+    schedule:
+      timezone: "Europe/Madrid"
+      business_hours:
+        - days: "mon-fri"
+          start: "09:00"
+          end: "14:00"
+        - days: "mon-fri"
+          start: "16:00"
+          end: "19:00"
+    transfers:
+      default: "201"
+      extensions:
+        recepcion: "200"
+        notario: "201"
+        oficial: "202"
+      group_hunt: "300"
+
+  - notaria_id: "N002"
+    name: "Notaria Martinez Ruiz - Madrid"
+    ddis:
+      - "912005678"
+    enabled: true
+    sip_trunk: "trunk-notaria-n002"
+    schedule:
+      timezone: "Europe/Madrid"
+      business_hours:
+        - days: "mon-fri"
+          start: "09:00"
+          end: "18:00"
+    transfers:
+      default: "100"
+      extensions:
+        recepcion: "100"
+        notario: "101"
+      group_hunt: "200"

@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Bridge — Workflow de Llamada</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --caller: #6366f1;
+            --caller-bg: rgba(99,102,241,0.08);
+            --caller-border: rgba(99,102,241,0.25);
+            --pbx: #d97706;
+            --pbx-bg: rgba(217,119,6,0.08);
+            --pbx-border: rgba(217,119,6,0.25);
+            --bridge: #1e3a5f;
+            --bridge-bg: rgba(30,58,95,0.08);
+            --bridge-border: rgba(30,58,95,0.25);
+            --lakimi: #059669;
+            --lakimi-bg: rgba(5,150,105,0.08);
+            --lakimi-border: rgba(5,150,105,0.25);
+            --ctn: #0891b2;
+            --ctn-bg: rgba(8,145,178,0.08);
+            --ctn-border: rgba(8,145,178,0.25);
+            --human: #9333ea;
+            --human-bg: rgba(147,51,234,0.08);
+            --human-border: rgba(147,51,234,0.25);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--white);
+            color: var(--gray-700);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .page {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 48px 56px;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 36px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--bridge);
+        }
+        .header h1 { font-size: 24px; font-weight: 800; color: var(--gray-800); }
+        .header .sub { font-size: 13px; color: var(--ctn); font-weight: 600; margin-top: 4px; }
+        .header-right { text-align: right; font-size: 11px; color: var(--gray-400); }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 14px 24px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            margin-bottom: 32px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 4px; }
+
+        /* ============================================ */
+        /* SWIMLANE DIAGRAM */
+        /* ============================================ */
+        .swimlane {
+            position: relative;
+            margin: 32px 0 48px;
+        }
+
+        /* Column headers */
+        .swim-headers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--white);
+            padding-bottom: 12px;
+        }
+
+        .swim-header {
+            text-align: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .swim-header.h-pbx { background: var(--pbx-bg); color: var(--pbx); border: 1px solid var(--pbx-border); }
+        .swim-header.h-bridge { background: var(--bridge); color: white; }
+        .swim-header.h-lakimi { background: var(--lakimi-bg); color: var(--lakimi); border: 1px solid var(--lakimi-border); }
+        .swim-header.h-extra { background: var(--gray-50); color: var(--gray-500); border: 1px solid var(--gray-200); }
+
+        .swim-header .h-sub { font-size: 10px; font-weight: 500; margin-top: 2px; opacity: 0.7; }
+
+        /* Grid lines */
+        .swim-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            position: relative;
+        }
+
+        .swim-col {
+            border-left: 1px dashed var(--gray-200);
+            border-right: 1px dashed var(--gray-200);
+            min-height: 20px;
+        }
+
+        /* Steps */
+        .swim-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 8px;
+            align-items: start;
+        }
+
+        .swim-cell {
+            min-height: 20px;
+        }
+
+        .step-box {
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 12.5px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .step-box .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .step-box .step-text { color: var(--gray-600); }
+        .step-box .step-text strong { color: var(--gray-800); }
+        .step-box code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            background: rgba(0,0,0,0.06);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        /* Step variants */
+        .step-pbx { background: var(--pbx-bg); border: 1px solid var(--pbx-border); }
+        .step-pbx .step-num { background: var(--pbx); }
+
+        .step-bridge { background: var(--bridge-bg); border: 1px solid var(--bridge-border); }
+        .step-bridge .step-num { background: var(--bridge); }
+
+        .step-lakimi { background: var(--lakimi-bg); border: 1px solid var(--lakimi-border); }
+        .step-lakimi .step-num { background: var(--lakimi); }
+
+        .step-ctn { background: var(--ctn-bg); border: 1px solid var(--ctn-border); }
+        .step-ctn .step-num { background: var(--ctn); }
+
+        .step-human { background: var(--human-bg); border: 1px solid var(--human-border); }
+        .step-human .step-num { background: var(--human); }
+
+        .step-caller { background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); }
+        .step-caller .step-num { background: var(--caller); }
+
+        /* Arrow between steps */
+        .swim-arrow {
+            text-align: center;
+            padding: 4px 0;
+            font-size: 18px;
+            color: var(--gray-300);
+        }
+
+        /* Spanning steps */
+        .step-span-2 { grid-column: span 2; }
+        .step-span-3 { grid-column: span 3; }
+        .step-span-4 { grid-column: span 4; }
+
+        /* Decision diamond */
+        .decision {
+            background: white;
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            position: relative;
+        }
+
+        .decision::before {
+            content: '?';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--gray-600);
+            color: white;
+            font-size: 12px;
+            font-weight: 800;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* Separator */
+        .swim-separator {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .swim-separator .sep-line {
+            flex: 1;
+            height: 2px;
+            background: var(--gray-200);
+        }
+
+        .swim-separator .sep-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 6px 16px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .sep-green { background: rgba(5,150,105,0.1); color: var(--lakimi); }
+        .sep-orange { background: rgba(217,119,6,0.1); color: var(--pbx); }
+        .sep-purple { background: rgba(147,51,234,0.1); color: var(--human); }
+        .sep-blue { background: rgba(30,58,95,0.1); color: var(--bridge); }
+        .sep-red { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+        /* SECTION TITLE */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 48px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-bottom: 16px;
+        }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { padding: 24px 32px; }
+            .swim-headers { position: static; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <h1>Workflow de Llamada</h1>
+            <div class="sub">Audio Bridge &mdash; Flujos de integracion CTN / Lakimi</div>
+        </div>
+        <div class="header-right">
+            <strong>SmartGroup</strong> &bull; Abril 2026
+        </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--caller);"></div> Cliente</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pbx);"></div> Centralita (Asterisk)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--bridge);"></div> Audio Bridge (SmartGroup)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--lakimi);"></div> IA (Lakimi)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--ctn);"></div> Backoffice (CTN)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--human);"></div> Empleado notaria</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- WORKFLOW A: COMPLETE CALL FLOW -->
+    <!-- ============================================================ -->
+    <div class="section-title">Workflow completo de una llamada</div>
+    <div class="section-desc">Desde que el cliente marca el numero hasta que la llamada finaliza. Incluye los dos escenarios: resolucion por IA y transferencia a humano.</div>
+
+    <div class="swimlane">
+
+        <!-- HEADERS -->
+        <div class="swim-headers">
+            <div class="swim-header h-pbx">Centralita<div class="h-sub">Asterisk / PekePBX</div></div>
+            <div class="swim-header h-bridge">Audio Bridge<div class="h-sub">SmartGroup</div></div>
+            <div class="swim-header h-lakimi">IA<div class="h-sub">Lakimi / CTN</div></div>
+            <div class="swim-header h-extra">Otros<div class="h-sub">Backoffice / Empleado</div></div>
+        </div>
+
+        <!-- ──── FASE 1: ENTRADA ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-orange">Fase 1 &mdash; Entrada de llamada</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">1</span>
+                    <span class="step-text"><strong>Recibe llamada</strong> del cliente por PSTN/SIP al DDI de la notaria</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">2</span>
+                    <span class="step-text"><strong>Dialplan comprueba</strong> si el DDI tiene IA activada</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="decision">DDI con IA activada?</div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx" style="border-color: rgba(220,38,38,0.3); background: rgba(220,38,38,0.05);">
+                    <span class="step-text" style="color: #dc2626;"><strong>NO &rarr;</strong> Flujo normal. La centralita gestiona como siempre (sin IA)</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx" style="border-color: rgba(5,150,105,0.3); background: rgba(5,150,105,0.05);">
+                    <span class="step-text" style="color: var(--lakimi);"><strong>SI &rarr;</strong> Comprueba VIP whitelist</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="decision">Caller es VIP?</div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx" style="border-color: var(--human-border); background: var(--human-bg);">
+                    <span class="step-text" style="color: var(--human);"><strong>SI VIP &rarr;</strong> Locucion "Si conoce la extension, marquela". Bypass de la IA. (Ver workflow C)</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">3</span>
+                    <span class="step-text"><strong>NO VIP &rarr;</strong> Envia audio al Bridge via <strong>AudioSocket</strong> (TCP :9092)</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">4</span>
+                    <span class="step-text"><strong>Recibe audio</strong> del llamante. Genera UUID de llamada</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <!-- ──── FASE 2: CONFIG ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-blue">Fase 2 &mdash; Configuracion de notaria</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">5</span>
+                    <span class="step-text"><strong>Consulta config</strong> de la notaria al backoffice CTN<br><code>GET /notarias/{ddi}/config</code></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-ctn">
+                    <span class="step-num">6</span>
+                    <span class="step-text"><strong>Devuelve config:</strong> nombre notaria, horarios, extensiones, transfers</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">7</span>
+                    <span class="step-text"><strong>Prepara sesion.</strong> Abre WebSocket para esta llamada. Inicia grabacion de audio</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <!-- ──── FASE 3: IA ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-green">Fase 3 &mdash; Conversacion con la IA</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">8</span>
+                    <span class="step-text"><strong>Se conecta</strong> al WebSocket del Bridge<br><code>WSS /calls/{id}/audio</code></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">9</span>
+                    <span class="step-text"><strong>Envia contexto</strong> a Lakimi: notaria_id, caller_id, DDI, horario. Empieza a reenviar audio del llamante</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">10</span>
+                    <span class="step-text"><strong>Recibe audio.</strong> Procesa: STT (entiende) &rarr; LLM (piensa) &rarr; TTS (habla)</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">11</span>
+                    <span class="step-text"><strong>Recibe audio TTS</strong> de Lakimi. Lo convierte al formato de Asterisk. Lo reproduce al llamante. <strong>Graba ambos canales</strong></span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">12</span>
+                    <span class="step-text"><strong>Envia audio</strong> de respuesta al Bridge por el WebSocket</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell" style="grid-column: 1 / -1; text-align: center; padding: 8px 0;">
+                <div style="display: inline-block; background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 8px; padding: 8px 24px; font-size: 12px; color: var(--gray-500);">
+                    &#x1F501; Los pasos 10-12 se repiten en bucle mientras dura la conversacion (bidireccional, tiempo real)
+                </div>
+            </div>
+        </div>
+
+        <!-- DECISION POINT -->
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="decision">La IA puede resolver?</div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <!-- ──── ESCENARIO A: RESUELVE ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-green">Escenario A &mdash; La IA resuelve y cuelga</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">A1</span>
+                    <span class="step-text"><strong>Resuelve la consulta.</strong> Se despide del cliente con audio TTS</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">A3</span>
+                    <span class="step-text"><strong>Recibe peticion.</strong> Ejecuta <strong>AMI Hangup</strong> contra Asterisk. Cierra WebSocket con Lakimi</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">A2</span>
+                    <span class="step-text"><strong>Pide al Bridge que cuelgue</strong><br><code>POST /calls/{id}/hangup</code><br><code>{"reason":"resolved"}</code></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">A4</span>
+                    <span class="step-text"><strong>Asterisk corta</strong> la llamada. El cliente escucha tono de colgado</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">A5</span>
+                    <span class="step-text"><strong>Guarda grabacion</strong> (2 WAV). Registra CDR en base de datos. Actualiza panel admin</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell" style="grid-column: 1 / -1; text-align: center; padding: 12px 0;">
+                <div style="display: inline-block; background: rgba(5,150,105,0.08); border: 2px solid rgba(5,150,105,0.25); border-radius: 10px; padding: 10px 32px; font-size: 14px; font-weight: 700; color: var(--lakimi);">
+                    FIN — Llamada resuelta por IA
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── ESCENARIO B: TRANSFER ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-purple">Escenario B &mdash; Transfer a humano</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">B1</span>
+                    <span class="step-text"><strong>Detecta que necesita humano.</strong> Responde al cliente: <em>"Le paso con el notario, un momento"</em></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">B3</span>
+                    <span class="step-text"><strong>Recibe peticion.</strong> Ejecuta <strong>AMI Redirect</strong> contra Asterisk: "redirige esta llamada a ext 201"</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-lakimi">
+                    <span class="step-num">B2</span>
+                    <span class="step-text"><strong>Pide transfer al Bridge</strong><br><code>POST /calls/{id}/transfer</code><br><code>{"destination":"201"}</code></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">B4</span>
+                    <span class="step-text"><strong>Asterisk redirige</strong> la llamada a ext 201</span>
+                </div>
+            </div>
+            <div class="swim-cell">
+                <div class="step-box step-bridge">
+                    <span class="step-num">B5</span>
+                    <span class="step-text"><strong>Se desconecta.</strong> Cierra WebSocket. Guarda grabacion del segmento IA. Registra transfer en CDR</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">B6</span>
+                    <span class="step-text"><strong>Si ext 201 es local</strong> &rarr; conecta directo<br><strong>Si tiene desvio a fijo</strong> &rarr; sale por trunk SIP<br><strong>Si tiene desvio a movil</strong> &rarr; sale por trunk</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-human">
+                    <span class="step-num">B7</span>
+                    <span class="step-text"><strong>Suena el telefono</strong> del notario (ext 201, fijo o movil). Descuelga y habla con el cliente</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell" style="grid-column: 1 / -1; text-align: center; padding: 12px 0;">
+                <div style="display: inline-block; background: var(--human-bg); border: 2px solid var(--human-border); border-radius: 10px; padding: 10px 32px; font-size: 14px; font-weight: 700; color: var(--human);">
+                    FIN — Cliente hablando con el notario
+                </div>
+            </div>
+        </div>
+
+        <!-- ──── ESCENARIO C: VIP ──── -->
+        <div class="swim-row">
+            <div class="swim-separator">
+                <div class="sep-line"></div>
+                <div class="sep-label sep-orange">Escenario C &mdash; Llamada VIP (bypass IA)</div>
+                <div class="sep-line"></div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx">
+                    <span class="step-num">C1</span>
+                    <span class="step-text"><strong>Caller en VIP list.</strong> Reproduce locucion: <em>"Si conoce la extension, marquela"</em></span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="decision">Marca extension?</div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx" style="border-color: var(--human-border); background: var(--human-bg);">
+                    <span class="step-num" style="background: var(--human);">C2</span>
+                    <span class="step-text"><strong>SI &rarr;</strong> Transfer directo a la extension marcada. Sin IA, sin Bridge</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell">
+                <div class="step-box step-human">
+                    <span class="step-num">C3</span>
+                    <span class="step-text"><strong>Suena el telefono</strong> de la extension. VIP habla directo</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell">
+                <div class="step-box step-pbx" style="border-color: rgba(220,38,38,0.3); background: rgba(220,38,38,0.05);">
+                    <span class="step-num" style="background: #dc2626;">C4</span>
+                    <span class="step-text"><strong>NO / timeout &rarr;</strong> Pendiente definir tratamiento:<br>&bull; Pasar a la IA (flujo normal)?<br>&bull; Recepcion?<br>&bull; Buzon de voz?</span>
+                </div>
+            </div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+            <div class="swim-cell"></div>
+        </div>
+
+        <div class="swim-row">
+            <div class="swim-cell" style="grid-column: 1 / -1; text-align: center; padding: 12px 0;">
+                <div style="display: inline-block; background: var(--pbx-bg); border: 2px solid var(--pbx-border); border-radius: 10px; padding: 10px 32px; font-size: 14px; font-weight: 700; color: var(--pbx);">
+                    FIN — VIP conectado sin pasar por IA
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- KEY TAKEAWAY -->
+    <div style="background: linear-gradient(135deg, var(--bridge) 0%, #2a5080 100%); border-radius: 12px; padding: 28px 32px; color: white; margin-top: 32px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Regla de oro</h3>
+        <p style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.85);">
+            <strong>Lakimi nunca toca la centralita.</strong> Siempre pide al Bridge, y el Bridge ejecuta contra Asterisk via AMI.
+            <br>
+            <strong>Asterisk nunca sabe que existe la IA.</strong> Solo conoce al Bridge como destino AudioSocket.
+            <br>
+            <strong>El Bridge es el centro.</strong> Traduce audio, graba, y ejecuta las acciones que la IA le pide.
+        </p>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <span><strong>SmartGroup</strong> &bull; Audio Bridge &mdash; Workflow de Llamada &bull; Abril 2026</span>
+        <span>Documento de trabajo</span>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requisitos No Funcionales — Integración Voz</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            padding: 40px;
+            font-size: 13px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1f36, #1e3a5f);
+            color: white;
+            padding: 24px 32px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            font-size: 28px;
+            background: rgba(255,255,255,0.1);
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1400px;
+        }
+
+        thead th {
+            background: #1e293b;
+            color: white;
+            padding: 12px 14px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+
+        tbody td {
+            padding: 14px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            line-height: 1.5;
+        }
+
+        tbody tr:nth-child(even) { background: #f8fafc; }
+        tbody tr:hover { background: #eef2ff; }
+
+        .col-id { width: 80px; font-weight: 600; color: #3b82f6; white-space: nowrap; }
+        .col-cat { width: 110px; }
+        .col-sub { width: 180px; font-weight: 500; }
+        .col-desc { width: 320px; color: #475569; }
+        .col-pri { width: 40px; text-align: center; }
+        .col-type { width: 100px; }
+        .col-tech { min-width: 400px; }
+
+        .priority {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .pri-m { background: #fef3c7; color: #b45309; }
+        .pri-s { background: #e0f2fe; color: #0369a1; }
+
+        .tech-tag {
+            display: inline-block;
+            background: #1e293b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin: 1px 2px;
+            white-space: nowrap;
+        }
+
+        .tech-tag.go { background: #00add8; color: white; }
+        .tech-tag.asterisk { background: #f57c00; color: white; }
+        .tech-tag.vue { background: #42b883; color: white; }
+        .tech-tag.openai { background: #412991; color: white; }
+        .tech-tag.db { background: #0ea5e9; color: white; }
+        .tech-tag.security { background: #dc2626; color: white; }
+        .tech-tag.protocol { background: #7c3aed; color: white; }
+
+        .tech-detail {
+            margin-top: 6px;
+            color: #475569;
+            font-size: 12px;
+        }
+
+        .tech-detail code {
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #334155;
+        }
+
+        .badge-type {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        @media print {
+            body { padding: 10px; font-size: 11px; }
+            .header { border-radius: 0; }
+            .table-wrapper { box-shadow: none; border: 1px solid #e2e8f0; border-radius: 0; }
+            table { min-width: auto; }
+            .col-tech { min-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-icon">&#128266;</div>
+        <div>
+            <h1>INTEGRACION VOZ — Requisitos No Funcionales</h1>
+            <p>Audio Bridge &mdash; Centro Tecnologico del Notariado &mdash; SmartGroup 2026</p>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Categoria</th>
+                    <th>Subcategoria</th>
+                    <th>Descripcion</th>
+                    <th>Pri.</th>
+                    <th>Tipo</th>
+                    <th>Tecnologia / Implementacion</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <!-- RNF-V01 -->
+                <tr>
+                    <td class="col-id">RNF-V01</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Recepcion de llamadas entrantes desviadas desde Centralita de Notaria via red publica</td>
+                    <td class="col-desc">La solucion debe permitir la recepcion de llamadas via red publica pudiendo diferenciar que llamadas corresponden a cada Notaria</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag asterisk">Asterisk 18+</span>
+                        <span class="tech-tag asterisk">res_audiosocket</span>
+                        <span class="tech-tag protocol">TCP :9092</span>
+                        <span class="tech-tag go">Go AudioSocket</span>
+                        <div class="tech-detail">
+                            Formato <strong>E.164</strong>. Routing por DDI via dialplan (<code>CALLERID(dnid)</code>).
+                            Resolucion de tenant via <code>TenantRegistry.LookupByDDI()</code>.
+                            Cada notaria registra sus DDIs en <code>config.yaml</code>.
+                            AudioSocket listener en TCP :9092, protocolo binario (UUID + PCM frames).
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V02 -->
+                <tr>
+                    <td class="col-id">RNF-V02</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Recepcion de llamadas entrantes desviadas desde Centralita de Notaria via trunk SIP</td>
+                    <td class="col-desc">La solucion debe permitir la recepcion de llamadas via SIP trunk pudiendo diferenciar que llamadas corresponden a cada Notaria</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag asterisk">PJSIP</span>
+                        <span class="tech-tag security">TLS/SRTP</span>
+                        <span class="tech-tag asterisk">SIP Trunk por Notaria</span>
+                        <div class="tech-detail">
+                            Trunk SIP dedicado por tenant (<code>sip_trunk: "trunk-notaria-N001"</code>).
+                            Securizacion via <strong>TLS/SRTP</strong> en <code>pjsip.conf</code>.
+                            DDI como identificador de tenant en el dialplan.
+                            Soporta multiples trunks simultaneos con <code>max_concurrent: 50</code>.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V03 -->
+                <tr>
+                    <td class="col-id">RNF-V03</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Traspaso de audio al modulo externo de Inteligencia Artificial</td>
+                    <td class="col-desc">La solucion debe de ser capaz de enviar el stream de audio al modulo de IA de forma bidireccional</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag protocol">AudioSocket TCP</span>
+                        <span class="tech-tag protocol">WebSocket TLS (WSS)</span>
+                        <span class="tech-tag openai">OpenAI Realtime API</span>
+                        <span class="tech-tag go">G.711 mu-law</span>
+                        <div class="tech-detail">
+                            <strong>1 stream bidireccional por llamada.</strong>
+                            Asterisk &rarr; AudioSocket (PCM 16-bit signed LE, 16kHz, mono) &rarr; Bridge (Go) &rarr; WSS (G.711 mu-law, 8kHz) &rarr; OpenAI Realtime.
+                            Conversion de codec en <code>openai_adapter.go</code> (encode/decode mu-law).
+                            Jitter buffer con pre-buffering 60ms (<code>audioBuffer</code>).
+                            Playback a tasa constante 20ms/frame.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V04 -->
+                <tr>
+                    <td class="col-id">RNF-V04</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Traspaso de informacion contextual al modulo externo de Inteligencia Artificial</td>
+                    <td class="col-desc">La solucion debe tener la capacidad de facilitar al modulo de IA informacion contextual relacionada con la llamada</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag protocol">WSS Query Params</span>
+                        <span class="tech-tag openai">session.update</span>
+                        <span class="tech-tag go">ConnectParams</span>
+                        <div class="tech-detail">
+                            Parametros en handshake WSS:
+                            <code>notaria_id</code>, <code>caller_id</code>, <code>interaction_id</code> (UUID),
+                            <code>call_type</code> (inbound/callback), <code>schedule</code> (business_hours/after_hours),
+                            <code>ddi_origin</code>, <code>context_id</code>, <code>context_data</code> (expediente, motivo).
+                            Session update con instrucciones personalizadas por notaria via <code>session.update</code> de OpenAI.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V05 -->
+                <tr>
+                    <td class="col-id">RNF-V05</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Transferencia de llamadas via red publica</td>
+                    <td class="col-desc">La solucion debe ser capaz de transferir llamadas a personas especificas de Notaria en caso de no resolucion del Asistente Virtual via red publica</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag asterisk">AMI Redirect</span>
+                        <span class="tech-tag go">Function Calling</span>
+                        <span class="tech-tag asterisk">Extensiones + Group Hunt</span>
+                        <div class="tech-detail">
+                            <strong>Personas, extensiones y grupos de salto valorable.</strong>
+                            AMI Action <code>Redirect</code> con destino configurable por tenant:
+                            <code>transfers.default</code> (ej: "201"),
+                            <code>transfers.extensions</code> (recepcion, notario, oficial),
+                            <code>transfers.group_hunt</code> (ej: "300").
+                            Fallback automatico si IA no disponible (<code>fallbackTransfer()</code>).
+                            IA solicita transfer via function calling: <code>transfer_call</code>.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V06 -->
+                <tr>
+                    <td class="col-id">RNF-V06</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Transferencia de llamadas via trunk SIP</td>
+                    <td class="col-desc">La solucion debe ser capaz de transferir llamadas a personas especificas de Notaria en caso de no resolucion del Asistente Virtual via trunk SIP</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag asterisk">AMI Redirect</span>
+                        <span class="tech-tag asterisk">SIP Trunk por Tenant</span>
+                        <span class="tech-tag openai">transfer_call</span>
+                        <div class="tech-detail">
+                            <strong>Personas, extensiones, grupos de salto.</strong>
+                            AMI Action <code>Redirect</code> con contexto <code>from-internal</code> + trunk SIP del tenant (<code>sip_trunk</code>).
+                            OpenAI function calling: <code>transfer_call</code> con <code>destination</code>, <code>destination_type</code> (extension/external), <code>via: "sip_trunk"</code>.
+                            Evento de retorno: <code>transfer_completed</code> con status connected/failed.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V07 -->
+                <tr>
+                    <td class="col-id">RNF-V07</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Securizacion de las comunicaciones con el modulo externo de Inteligencia Artificial</td>
+                    <td class="col-desc">La interconexion con el modulo de inteligencia artificial debe estar securizada</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag security">WSS (TLS 1.2+)</span>
+                        <span class="tech-tag security">API Key</span>
+                        <span class="tech-tag security">Bearer Token</span>
+                        <span class="tech-tag security">Bcrypt</span>
+                        <span class="tech-tag security">Rate Limiting</span>
+                        <div class="tech-detail">
+                            <strong>WSS, API Key, Bearer Token.</strong>
+                            Conexion IA: WebSocket sobre TLS (:443) con header <code>X-API-Key</code>.
+                            Admin API: Token Bearer con expiracion 24h.
+                            Password admin: soporte <code>password_hash</code> bcrypt (<code>golang.org/x/crypto/bcrypt</code>).
+                            Rate limiting per-IP (token bucket: 30 burst, 1/s refill).
+                            CORS middleware restrictivo.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V08 -->
+                <tr>
+                    <td class="col-id">RNF-V08</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Logs y trazas</td>
+                    <td class="col-desc">El sistema debe disponer de logs, registro de llamadas, eventos, streams, interacciones y calidad de llamada (MOS) que permita tracear end-to-end las llamadas</td>
+                    <td class="col-pri"><span class="priority pri-s">S</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag go">Zap Logger (JSON)</span>
+                        <span class="tech-tag db">SQLite WAL</span>
+                        <span class="tech-tag go">UUID Correlation</span>
+                        <span class="tech-tag asterisk">WAV Dual Recording</span>
+                        <div class="tech-detail">
+                            Logging estructurado con <strong>Zap</strong> (formato JSON).
+                            SQLite tabla <code>interaction_logs</code>: call_id, timestamp, direction, content, event_type.
+                            <code>call_id</code> (UUID v4) como <strong>correlation ID end-to-end</strong>.
+                            Tipos de evento: speech, transfer, hangup, DTMF.
+                            Grabacion dual WAV (canal llamante + canal IA) con <code>recording.Recorder</code>.
+                            Transcripciones en tiempo real almacenadas en DB.
+                            MOS: pendiente de implementar.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V09 -->
+                <tr>
+                    <td class="col-id">RNF-V09</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Reporting asociado</td>
+                    <td class="col-desc">La solucion debe disponer de informes de trafico entrante/saliente con un minimo de datos para poder analizar y supervisar el funcionamiento sin necesidad de descargar y tratar los logs y trazas</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag go">REST API /admin/stats</span>
+                        <span class="tech-tag vue">Vue 3 Dashboard</span>
+                        <span class="tech-tag vue">Pinia Store</span>
+                        <span class="tech-tag protocol">SSE Streaming</span>
+                        <div class="tech-detail">
+                            <strong>Timestamp, ID interaccion, llamante, llamado, resultado, duracion.</strong>
+                            API REST: <code>/api/v1/admin/stats</code> (KPIs), <code>/api/v1/admin/calls</code> (historial paginado con filtros).
+                            Panel Vue 3: Dashboard con llamadas hoy, activas, duracion media, desglose por notaria (inbound/outbound).
+                            Historial con filtros: notaria, rango fechas, estado. Paginacion server-side (20/pagina).
+                            Detalle de llamada: transcripcion completa, logs de interaccion, metadatos, grabaciones.
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V10 -->
+                <tr>
+                    <td class="col-id">RNF-V10</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Logs y trazas</td>
+                    <td class="col-desc">El sistema debe disponer de logs, registro de llamadas, eventos, streams, interacciones y calidad de llamada (MOS) que permita tracear end-to-end las llamadas</td>
+                    <td class="col-pri"><span class="priority pri-s">S</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag protocol">SSE (Server-Sent Events)</span>
+                        <span class="tech-tag vue">LiveTranscript</span>
+                        <span class="tech-tag db">SQLite interaction_logs</span>
+                        <span class="tech-tag go">SSEHub Broadcast</span>
+                        <div class="tech-detail">
+                            Trazabilidad en tiempo real via <strong>SSE</strong> (<code>/api/v1/admin/sessions/live</code>).
+                            Eventos: <code>call_started</code>, <code>transcript_user</code>, <code>transcript_ai</code>, <code>call_ended</code>.
+                            Panel: componente <code>LiveTranscript.vue</code> con scroll automatico y mensajes timestamped.
+                            Indicador de conexion SSE en sidebar (connected/connecting/disconnected).
+                            Almacenamiento persistente en SQLite para consulta posterior.
+                            MOS: pendiente de implementar (requiere analisis de jitter/packet loss).
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- RNF-V11 -->
+                <tr>
+                    <td class="col-id">RNF-V11</td>
+                    <td class="col-cat">Integracion Voz</td>
+                    <td class="col-sub">Emision de llamadas automaticas</td>
+                    <td class="col-desc">La solucion debe permitir emitir llamadas salientes de forma automatizada y enlazarlas con el modulo de IA una vez el cliente haya descolgado</td>
+                    <td class="col-pri"><span class="priority pri-m">M</span></td>
+                    <td class="col-type"><span class="badge-type">Diseno sistema</span></td>
+                    <td class="col-tech">
+                        <span class="tech-tag asterisk">AMI Originate</span>
+                        <span class="tech-tag go">REST API</span>
+                        <span class="tech-tag asterisk">Call Progress Detection</span>
+                        <span class="tech-tag go">Retry con backoff</span>
+                        <div class="tech-detail">
+                            <strong>Integracion via API REST + AMI Originate.</strong>
+                            Endpoint: <code>POST /api/v1/calls/outbound</code> con payload: destination, notaria_id, call_type (callback), context_id, context_data (expediente, motivo).
+                            AMI Action <code>Originate</code> con variables: <code>CALL_UUID</code>, <code>NOTARIA_ID</code>, <code>CALL_TYPE</code>.
+                            Retry configurable: 3 intentos, 30s intervalo (<code>OriginateWithRetry()</code>).
+                            Trunk SIP del tenant como caller ID.
+                            Call Progress Analysis via Asterisk.
+                            Conexion automatica a IA post-descolgado via AudioSocket.
+                        </div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        SmartGroup &mdash; Audio Bridge &mdash; Centro Tecnologico del Notariado &mdash; Marzo 2026 &mdash; Documento confidencial
+    </div>
+
+</body>
+</html>

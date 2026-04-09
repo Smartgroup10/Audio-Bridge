@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Bridge - Documentacion Tecnica</title>
+<style>
+  :root {
+    --navy: #1a1f36;
+    --blue: #3b82f6;
+    --cyan: #22d3ee;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-600: #4b5563;
+    --gray-800: #1f2937;
+    --green: #10b981;
+    --amber: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--gray-800);
+    line-height: 1.6;
+    background: var(--gray-50);
+  }
+
+  /* Header */
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .header h1 span { color: var(--cyan); }
+  .header p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .header .badge {
+    display: inline-block;
+    background: rgba(34,211,238,0.15);
+    color: var(--cyan);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 1rem;
+  }
+
+  /* Container */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Sections */
+  section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--cyan);
+    display: inline-block;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.5rem;
+    color: var(--gray-800);
+  }
+
+  p { margin-bottom: 0.75rem; color: var(--gray-600); }
+
+  /* Architecture diagram */
+  .diagram {
+    background: var(--navy);
+    color: #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    white-space: pre;
+    margin: 1rem 0;
+  }
+
+  /* Code blocks */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+  pre .comment { color: #64748b; }
+  pre .keyword { color: var(--cyan); }
+  pre .string { color: #a5f3fc; }
+
+  code {
+    background: var(--gray-100);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #be185d;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th {
+    background: var(--navy);
+    color: white;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    color: var(--gray-600);
+  }
+  tr:hover td { background: var(--gray-50); }
+  td code { font-size: 0.8rem; }
+
+  /* Flow steps */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 1rem 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-left: 3px solid var(--cyan);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .flow-step::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 1rem;
+    width: 11px;
+    height: 11px;
+    background: var(--cyan);
+    border-radius: 50%;
+  }
+  .flow-step .num {
+    background: var(--navy);
+    color: var(--cyan);
+    font-weight: 700;
+    font-size: 0.75rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .flow-step .content { flex: 1; }
+  .flow-step .label { font-weight: 600; color: var(--gray-800); }
+  .flow-step .desc { font-size: 0.85rem; color: var(--gray-600); }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+  }
+  .tag-go { background: #dbeafe; color: #1d4ed8; }
+  .tag-vue { background: #d1fae5; color: #059669; }
+  .tag-ai { background: #fce7f3; color: #be185d; }
+  .tag-pbx { background: #fef3c7; color: #b45309; }
+  .tag-db { background: #e0e7ff; color: #4338ca; }
+
+  /* Grid */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  @media (max-width: 640px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  .grid-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+  .grid-card h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .grid-card p {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+
+  /* SSE event box */
+  .sse-event {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+  .sse-event .sse-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  /* Method badges */
+  .method {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: monospace;
+    margin-right: 0.25rem;
+  }
+  .method-get { background: #d1fae5; color: #059669; }
+  .method-post { background: #dbeafe; color: #1d4ed8; }
+  .method-put { background: #fef3c7; color: #b45309; }
+  .method-delete { background: #fee2e2; color: #dc2626; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Audio <span>Bridge</span></h1>
+  <p>Plataforma de voz con IA para automatizar la atencion telefonica de notarias. Conversacion natural en espanol con transcripcion en tiempo real.</p>
+  <div class="badge">Go + OpenAI Realtime + Asterisk AudioSocket + Vue 3</div>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<section>
+  <h2>Que es Audio Bridge</h2>
+  <p>
+    Audio Bridge es un sistema que intercepta llamadas telefonicas entrantes a notarias y las conecta con una IA conversacional (OpenAI Realtime API) capaz de hablar en espanol en tiempo real. La IA puede resolver consultas, dar informacion sobre servicios notariales y transferir la llamada a la extension correcta cuando sea necesario.
+  </p>
+  <p>
+    El sistema es <strong>multi-tenant</strong>: cada notaria tiene su propia configuracion (prompt, horarios, destinos de transferencia) y comparten la misma infraestructura.
+  </p>
+
+  <div class="grid-2">
+    <div class="grid-card">
+      <h4>Para el llamante</h4>
+      <p>Llama al telefono de la notaria y habla con una recepcionista virtual que entiende espanol, responde preguntas y transfiere cuando es necesario.</p>
+    </div>
+    <div class="grid-card">
+      <h4>Para la notaria</h4>
+      <p>Panel de administracion con llamadas activas, transcripcion en vivo tipo chat, historial completo, grabaciones y configuracion del asistente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Arquitectura</h2>
+
+  <div class="diagram">
+                      Red Publica (PSTN)
+                           |
+                           v
+  +------------------------------------------------+
+  |          PekePBX (Asterisk + Kamailio)          |
+  |                                                 |
+  |  Dialplan custom por tenant:                    |
+  |  [sub_custom_{TENANT}_pstn_in]                  |
+  |    -> curl POST /api/v1/calls/precreate         |
+  |    -> AudioSocket(UUID, bridge:9092)            |
+  |    -> Si transfer -> Dial(SIP/trunk/destino)    |
+  |    -> Si no IA -> Return() (flujo normal)       |
+  +------------------------+-----------------------+
+                           | TCP AudioSocket (PCM16 8kHz)
+                           v
+  +------------------------------------------------+
+  |        Audio Bridge (Go, :8080 / :9092)         |
+  |                                                 |
+  |  +---------------+    +---------------------+   |
+  |  | AudioSocket   |<-->| OpenAI Realtime     |   |
+  |  | Server :9092  |    | WebSocket Client    |   |
+  |  +-------+-------+    +---------+-----------+   |
+  |          |                      |               |
+  |          v                      v               |
+  |  +------------------------------------------+   |
+  |  |          Bridge (session manager)         |   |
+  |  |  - Audio bidireccional                    |   |
+  |  |  - Transcripcion en tiempo real           |   |
+  |  |  - Deteccion de intents (transfer)        |   |
+  |  |  - Grabacion caller + IA separados        |   |
+  |  +--------------------+---------------------+   |
+  |                       |                         |
+  |  +--------------------+---------------------+   |
+  |  |       API REST + SSE (:8080)              |   |
+  |  |  - /api/v1/calls/*   (API key auth)       |   |
+  |  |  - /api/v1/admin/*   (token auth)         |   |
+  |  |  - /admin/*          (panel Vue SPA)      |   |
+  |  +------------------------------------------+   |
+  |                                                 |
+  |  +------------+   +-------------------------+   |
+  |  | SQLite DB  |   | Recordings (WAV)        |   |
+  |  | - calls    |   | /recordings/YYYY-MM-DD/ |   |
+  |  | - tenants  |   | - {id}_caller.wav       |   |
+  |  | - logs     |   | - {id}_ai.wav           |   |
+  |  +------------+   +-------------------------+   |
+  +------------------------------------------------+
+                           |
+                           v
+  +------------------------------------------------+
+  |       Panel Admin (Vue 3 + Tailwind CSS)        |
+  |       /admin/ -- servido como SPA estatica      |
+  |                                                 |
+  |  - Dashboard (stats en tiempo real)             |
+  |  - Llamadas Activas (SSE + transcripcion        |
+  |    en vivo con panel tipo chat)                 |
+  |  - Historial (CDR con transcripciones)          |
+  |  - Notarias (CRUD de tenants)                   |
+  |  - Grabaciones (reproductor inline)             |
+  |  - Configuracion                                |
+  +------------------------------------------------+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Flujo de una llamada</h2>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="num">1</div>
+      <div class="content">
+        <div class="label">PSTN -> PekePBX</div>
+        <div class="desc">Llamada entra al DDI de la notaria. Asterisk ejecuta el dialplan custom del tenant.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">2</div>
+      <div class="content">
+        <div class="label">Dialplan -> Bridge (precreate)</div>
+        <div class="desc">curl POST al bridge con <code>tenant_id</code>, <code>caller_id</code> y <code>ddi</code>. El bridge evalua horario, concurrencia y reglas.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">3</div>
+      <div class="content">
+        <div class="label">Bridge devuelve UUID</div>
+        <div class="desc">Si la IA debe atender, devuelve un UUID de sesion. Si no, el dialplan sigue el flujo normal de PekePBX.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">4</div>
+      <div class="content">
+        <div class="label">Asterisk -> AudioSocket</div>
+        <div class="desc">Conecta audio bidireccional TCP al bridge usando el UUID. PCM16 signed little-endian, 8kHz mono.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">5</div>
+      <div class="content">
+        <div class="label">Bridge -> OpenAI Realtime</div>
+        <div class="desc">Abre WebSocket a la API Realtime de OpenAI con el prompt personalizado del tenant.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">6</div>
+      <div class="content">
+        <div class="label">Conversacion en vivo</div>
+        <div class="desc">Audio fluye: Caller <-> AudioSocket <-> Bridge <-> OpenAI WebSocket. Cada utterance se transcribe y se emite por SSE.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">7</div>
+      <div class="content">
+        <div class="label">Transfer o resolucion</div>
+        <div class="desc">Si la IA detecta que debe transferir, llama una function tool. El bridge cierra AudioSocket y Asterisk continua el dialplan hacia el destino. Si la consulta se resuelve, cuelga directamente.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="num">8</div>
+      <div class="content">
+        <div class="label">Persistencia</div>
+        <div class="desc">La llamada se guarda en SQLite con transcripciones completas, grabaciones WAV separadas (caller/IA), duracion y motivo de fin.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Stack Tecnologico</h2>
+  <table>
+    <thead>
+      <tr><th>Componente</th><th>Tecnologia</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Bridge core</td><td><span class="tag tag-go">Go</span> Gin, gorilla/websocket, zap logger</td></tr>
+      <tr><td>Audio transport</td><td><span class="tag tag-pbx">AudioSocket</span> TCP, PCM16 signed LE, 8kHz mono</td></tr>
+      <tr><td>IA conversacional</td><td><span class="tag tag-ai">OpenAI</span> Realtime API (WebSocket bidireccional)</td></tr>
+      <tr><td>Base de datos</td><td><span class="tag tag-db">SQLite</span> Llamadas, tenants, logs de interaccion</td></tr>
+      <tr><td>Grabacion</td><td>WAV PCM16 8kHz, archivos separados caller / IA</td></tr>
+      <tr><td>Panel admin</td><td><span class="tag tag-vue">Vue 3</span> Pinia + Vue Router + Tailwind CSS</td></tr>
+      <tr><td>Eventos tiempo real</td><td>SSE (Server-Sent Events)</td></tr>
+      <tr><td>PBX</td><td><span class="tag tag-pbx">PekePBX</span> Asterisk + Kamailio, multi-tenant</td></tr>
+      <tr><td>Deploy</td><td>VPS Linux, systemd service</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>API Endpoints</h2>
+
+  <h3>API externa (autenticacion con <code>X-API-Key</code>)</h3>
+  <table>
+    <thead>
+      <tr><th>Metodo</th><th>Ruta</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/calls/outbound</code></td><td>Originar llamada saliente</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/calls/:id/status</code></td><td>Estado + transcripcion de una llamada</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/calls/active</code></td><td>Todas las llamadas activas con transcripcion</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/stats</code></td><td>Estadisticas generales</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Admin panel (autenticacion con Bearer token)</h3>
+  <table>
+    <thead>
+      <tr><th>Metodo</th><th>Ruta</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/auth/login</code></td><td>Login (devuelve token)</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/sessions/live</code></td><td>SSE stream en tiempo real</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/calls</code></td><td>Historial paginado</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/calls/:id</code></td><td>Detalle + logs de interaccion</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/tenants</code></td><td>Listar notarias</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/admin/tenants</code></td><td>Crear notaria</td></tr>
+      <tr><td><span class="method method-put">PUT</span></td><td><code>/api/v1/admin/tenants/:id</code></td><td>Actualizar notaria</td></tr>
+      <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/admin/tenants/:id</code></td><td>Eliminar notaria</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/recordings/:id/:ch</code></td><td>Stream audio WAV (caller/ai)</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/admin/config</code></td><td>Configuracion actual</td></tr>
+      <tr><td><span class="method method-put">PUT</span></td><td><code>/api/v1/admin/config</code></td><td>Actualizar configuracion</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: obtener llamadas activas con transcripcion</h3>
+  <pre>curl -H "X-API-Key: YOUR_KEY" http://bridge-host:8080/api/v1/calls/active</pre>
+  <pre>{
+  "count": 1,
+  "calls": [
+    {
+      "call_id": "7b046598-a1b2-c3d4-e5f6-789012345678",
+      "state": "streaming",
+      "direction": "inbound",
+      "caller_id": "666999888",
+      "notaria_id": "N001",
+      "start_time": "2026-03-17T14:30:00Z",
+      "transcript_user": "Me podria dar informacion sobre una herencia?\nSe murio mi madre.",
+      "transcript_ai": "Claro, que informacion necesita?\nLamento su perdida. Para gestionar una herencia necesitamos..."
+    }
+  ]
+}</pre>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Eventos SSE (tiempo real)</h2>
+  <p>El endpoint <code>/api/v1/admin/sessions/live</code> emite eventos Server-Sent Events conforme ocurren:</p>
+
+  <div class="sse-event">
+    <div class="sse-label">call_started</div>
+    <pre>{ "type": "call_started", "data": {
+    "call_id": "7b046598...",
+    "caller_id": "666999888",
+    "notaria_id": "N001",
+    "direction": "inbound"
+  }
+}</pre>
+  </div>
+
+  <div class="sse-event">
+    <div class="sse-label">transcript_user &mdash; cada frase del llamante</div>
+    <pre>{ "type": "transcript_user", "data": {
+    "call_id": "7b046598...",
+    "text": "Quiero informacion sobre herencias"
+  }
+}</pre>
+  </div>
+
+  <div class="sse-event">
+    <div class="sse-label">transcript_ai &mdash; cada respuesta de la IA</div>
+    <pre>{ "type": "transcript_ai", "data": {
+    "call_id": "7b046598...",
+    "text": "Claro, para tramitar una herencia necesita..."
+  }
+}</pre>
+  </div>
+
+  <div class="sse-event">
+    <div class="sse-label">call_ended</div>
+    <pre>{ "type": "call_ended", "data": {
+    "call_id": "7b046598...",
+    "end_reason": "transferred",
+    "transfer_dest": "917374206",
+    "duration_seconds": 45.2
+  }
+}</pre>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Multi-Tenant</h2>
+  <p>Cada notaria es un tenant independiente con su propia configuracion:</p>
+
+  <div class="grid-2">
+    <div class="grid-card">
+      <h4>Prompt personalizado</h4>
+      <p>Contexto unico de la notaria: nombre, servicios, horarios, forma de hablar.</p>
+    </div>
+    <div class="grid-card">
+      <h4>Transfer targets</h4>
+      <p>Extensiones y numeros a los que la IA puede transferir (departamentos, notario, etc).</p>
+    </div>
+    <div class="grid-card">
+      <h4>DDIs asignados</h4>
+      <p>Numeros de telefono publicos que activan la IA para ese tenant.</p>
+    </div>
+    <div class="grid-card">
+      <h4>Limites y horarios</h4>
+      <p>Max llamadas concurrentes con IA, horario de atencion, comportamiento fuera de horario.</p>
+    </div>
+  </div>
+
+  <h3>Integracion con PekePBX</h3>
+  <p>PekePBX soporta contextos custom por empresa y por DDI. Audio Bridge se integra con un fichero de dialplan por tenant:</p>
+
+  <pre><span class="comment">; Fichero: /etc/asterisk/custom/20186.conf</span>
+<span class="comment">; Notaria Jose Cela - tenant 20186</span>
+
+[sub_custom_20186_pstn_in]
+exten => _X.,1,Verbose(Audio Bridge: ${CALLER} -> ${CALLEE} company ${DST_COMPANY})
+
+<span class="comment">; 1. Preguntar al bridge si debe ir a IA</span>
+same => n,Set(RESULT=${SHELL(curl -s -X POST http://localhost:8080/api/v1/calls/precreate ...)})
+same => n,Set(CALL_UUID=...)
+
+<span class="comment">; 2. Si no hay UUID -> flujo normal PekePBX</span>
+same => n,GotoIf($["${CALL_UUID}" = ""]?noai)
+
+<span class="comment">; 3. Conectar AudioSocket al bridge</span>
+same => n,Answer()
+same => n,AudioSocket(${CALL_UUID},127.0.0.1:9092)
+
+<span class="comment">; 4. Post-AudioSocket: si hay transfer</span>
+same => n,GotoIf($["${TRANSFER_TARGET}" != ""]?transfer)
+same => n,Hangup()
+
+same => n(transfer),Dial(SIP/pd${DST_COMPANY}/${TRANSFER_TARGET},60)
+same => n,Hangup()
+
+same => n(noai),Return()</pre>
+
+  <p>Opciones de contexto disponibles en PekePBX:</p>
+  <table>
+    <thead>
+      <tr><th>Contexto</th><th>Alcance</th><th>Uso</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>[sub_custom_general_pstn_in]</code></td><td>Todas las empresas</td><td>Reglas globales</td></tr>
+      <tr><td><code>[sub_custom_{TENANT}_pstn_in]</code></td><td>Todas las llamadas de un tenant</td><td>IA para toda la notaria</td></tr>
+      <tr><td><code>[sub_custom_{TENANT}_{DDI}]</code></td><td>Un DDI especifico</td><td>IA solo en ciertos numeros</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Panel de Administracion</h2>
+  <p>SPA en Vue 3 servida desde <code>/admin/</code>. Autenticacion por password con token JWT.</p>
+
+  <table>
+    <thead>
+      <tr><th>Vista</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Dashboard</strong></td><td>Estadisticas del dia: llamadas totales, activas, duracion media, desglose por notaria.</td></tr>
+      <tr><td><strong>Llamadas Activas</strong></td><td>Grid de CallCards en tiempo real via SSE. Click en una tarjeta abre panel de transcripcion en vivo tipo chat con auto-scroll.</td></tr>
+      <tr><td><strong>Historial</strong></td><td>CDR paginado con filtros por fecha y notaria. Detalle con transcripcion completa usuario/IA y registro de interacciones con timestamps.</td></tr>
+      <tr><td><strong>Notarias</strong></td><td>CRUD de tenants: nombre, DDIs, prompt, targets de transferencia, horarios.</td></tr>
+      <tr><td><strong>Grabaciones</strong></td><td>Reproductor inline de audio WAV. Canales separados: lo que dijo el llamante y lo que dijo la IA.</td></tr>
+      <tr><td><strong>Configuracion</strong></td><td>Ajustes de grabacion, logging, parametros de IA.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Estructura del Proyecto</h2>
+  <pre>audio-bridge/
+  cmd/bridge/main.go            <span class="comment"># Entrypoint</span>
+  internal/
+    api/server.go               <span class="comment"># REST API + SSE + admin panel</span>
+    audiosocket/server.go       <span class="comment"># Servidor TCP AudioSocket</span>
+    bridge/bridge.go            <span class="comment"># Orquestador de sesiones</span>
+    wssclient/
+      client.go                 <span class="comment"># WebSocket client base</span>
+      openai_adapter.go         <span class="comment"># Adaptador OpenAI Realtime</span>
+      interface.go              <span class="comment"># Interface para otros providers</span>
+    ami/client.go               <span class="comment"># Cliente AMI para transfers</span>
+    config/config.go            <span class="comment"># Configuracion YAML + TenantRegistry</span>
+    db/db.go                    <span class="comment"># SQLite (calls, tenants, logs)</span>
+    models/models.go            <span class="comment"># Call, CallRegistry, SSEHub</span>
+    recording/recorder.go       <span class="comment"># Grabacion WAV separada</span>
+  configs/
+    config.yaml                 <span class="comment"># Configuracion principal</span>
+    dialplan-notarias.conf      <span class="comment"># Ejemplo dialplan Asterisk</span>
+  web/
+    src/
+      components/
+        CallCard.vue            <span class="comment"># Tarjeta de llamada activa</span>
+        LiveTranscript.vue      <span class="comment"># Panel transcripcion en vivo</span>
+        AudioPlayer.vue         <span class="comment"># Reproductor de grabaciones</span>
+        Sidebar.vue             <span class="comment"># Navegacion lateral</span>
+        StatsCard.vue           <span class="comment"># Tarjeta de estadistica</span>
+      views/
+        Dashboard.vue           <span class="comment"># Vista principal</span>
+        ActiveCalls.vue         <span class="comment"># Llamadas activas + transcript</span>
+        CallHistory.vue         <span class="comment"># Historial</span>
+        CallDetail.vue          <span class="comment"># Detalle de llamada</span>
+        Tenants.vue             <span class="comment"># CRUD notarias</span>
+        Recordings.vue          <span class="comment"># Grabaciones</span>
+        Settings.vue            <span class="comment"># Configuracion</span>
+      stores/
+        calls.js                <span class="comment"># Estado llamadas + SSE</span>
+        auth.js                 <span class="comment"># Autenticacion</span>
+        tenants.js              <span class="comment"># Estado notarias</span>
+      api.js                    <span class="comment"># Axios client</span>
+      router.js                 <span class="comment"># Vue Router</span>
+  docs/                         <span class="comment"># Documentacion</span>
+  scripts/                      <span class="comment"># Utilidades</span></pre>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Despliegue</h2>
+  <div class="grid-2">
+    <div class="grid-card">
+      <h4>VPS</h4>
+      <p>Binario Go compilado, ejecutado como servicio systemd. SQLite local. Grabaciones en disco. Panel Vue pre-built como static files.</p>
+    </div>
+    <div class="grid-card">
+      <h4>PekePBX</h4>
+      <p>Ficheros .conf en <code>/etc/asterisk/custom/</code>. Un fichero por tenant. <code>dialplan reload</code> para aplicar cambios.</p>
+    </div>
+  </div>
+  <pre><span class="comment"># Compilar y desplegar</span>
+cd /opt/audio-bridge
+go build -o audio-bridge ./cmd/bridge/
+systemctl restart audio-bridge
+
+<span class="comment"># Frontend</span>
+cd web && npm run build
+<span class="comment"># dist/ se sirve automaticamente desde /admin/</span></pre>
+</section>
+
+</div>
+
+<div class="footer">
+  Audio Bridge &mdash; SmartGroup &mdash; 2026
+</div>
+
+</body>
+</html>

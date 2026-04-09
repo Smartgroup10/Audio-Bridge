@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Bridge — Especificacion Tecnica de Integracion CTN / Lakimi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --primary: #1e3a5f;
+            --primary-dark: #0f2440;
+            --accent: #0891b2;
+            --accent-light: #22d3ee;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --white: #ffffff;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--white);
+            color: var(--gray-700);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 56px;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 36px;
+            padding-bottom: 24px;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .header-left h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--primary-dark);
+            line-height: 1.2;
+        }
+
+        .header-left .tagline {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+            color: var(--gray-400);
+            line-height: 1.8;
+        }
+
+        .header-right strong { color: var(--gray-600); }
+
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        .badge-draft { background: rgba(217,119,6,0.1); color: var(--warning); border: 1px solid rgba(217,119,6,0.25); }
+        .badge-version { background: rgba(8,145,178,0.1); color: var(--accent); border: 1px solid rgba(8,145,178,0.25); }
+
+        /* SECTIONS */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+            display: inline;
+            vertical-align: middle;
+        }
+
+        .section-desc {
+            font-size: 13.5px;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+            margin-top: 8px;
+        }
+
+        .subsection-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 12px;
+            margin-top: 24px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        /* RESPONSIBLE TAG */
+        .resp-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .resp-sg { background: rgba(30,58,95,0.1); color: var(--primary); }
+        .resp-ctn { background: rgba(8,145,178,0.1); color: var(--accent); }
+        .resp-lakimi { background: rgba(5,150,105,0.1); color: var(--success); }
+        .resp-both { background: rgba(217,119,6,0.1); color: var(--warning); }
+
+        /* ENDPOINT BLOCK */
+        .endpoint {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+        }
+
+        .method {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+        .method-post { background: rgba(5,150,105,0.12); color: var(--success); }
+        .method-get { background: rgba(8,145,178,0.12); color: var(--accent); }
+        .method-delete { background: rgba(220,38,38,0.12); color: var(--danger); }
+
+        .endpoint-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .endpoint-desc {
+            font-size: 12.5px;
+            color: var(--gray-500);
+            margin-left: auto;
+        }
+
+        .endpoint-body {
+            padding: 20px 24px;
+        }
+
+        .endpoint-body p {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+
+        /* CODE BLOCK */
+        .code {
+            background: var(--gray-900);
+            color: var(--gray-300);
+            border-radius: 8px;
+            padding: 20px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .code .comment { color: #6b7280; }
+        .code .key { color: var(--accent-light); }
+        .code .value { color: #a5d6a7; }
+        .code .str { color: #fbbf24; }
+        .code .num { color: #f472b6; }
+        .code .bool { color: #c084fc; }
+
+        /* TABLE */
+        .spec-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+
+        .spec-table thead {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .spec-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .spec-table th:first-child { border-radius: 6px 0 0 0; }
+        .spec-table th:last-child { border-radius: 0 6px 0 0; }
+
+        .spec-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-600);
+            vertical-align: top;
+        }
+        .spec-table td strong { color: var(--gray-800); }
+        .spec-table td code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--accent);
+        }
+        .spec-table tbody tr:hover { background: var(--gray-50); }
+
+        .required {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--danger);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .optional {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* INFO BOX */
+        .info-box {
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+        .info-box strong { display: block; margin-bottom: 4px; }
+        .info-blue { background: rgba(8,145,178,0.06); border: 1px solid rgba(8,145,178,0.18); }
+        .info-blue strong { color: var(--accent); }
+        .info-amber { background: rgba(217,119,6,0.06); border: 1px solid rgba(217,119,6,0.18); }
+        .info-amber strong { color: var(--warning); }
+        .info-green { background: rgba(5,150,105,0.06); border: 1px solid rgba(5,150,105,0.18); }
+        .info-green strong { color: var(--success); }
+        .info-red { background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.18); }
+        .info-red strong { color: var(--danger); }
+
+        /* DIAGRAM */
+        .diagram {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 32px 24px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            white-space: pre;
+            overflow-x: auto;
+            color: var(--gray-500);
+        }
+        .diagram .hl { color: var(--primary); font-weight: 700; }
+        .diagram .accent { color: var(--accent); font-weight: 700; }
+        .diagram .green { color: var(--success); font-weight: 700; }
+        .diagram .amber { color: var(--warning); font-weight: 700; }
+
+        /* TWO COLUMNS */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 16px 0;
+        }
+
+        /* RESPONSE CODES */
+        .status-code {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .status-2xx { background: rgba(5,150,105,0.1); color: var(--success); }
+        .status-4xx { background: rgba(217,119,6,0.1); color: var(--warning); }
+        .status-5xx { background: rgba(220,38,38,0.1); color: var(--danger); }
+
+        /* PAGE BREAK */
+        .page-break {
+            page-break-before: always;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 2px solid var(--gray-200);
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 24px 32px;
+            margin-bottom: 36px;
+        }
+        .toc h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gray-400);
+            margin-bottom: 14px;
+        }
+        .toc-list {
+            list-style: none;
+            padding: 0;
+        }
+        .toc-list li {
+            padding: 5px 0;
+            font-size: 13.5px;
+            color: var(--gray-600);
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+        }
+        .toc-list li .toc-num {
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 24px;
+        }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { padding: 32px 40px; min-height: auto; }
+            .page-break { margin-top: 0; padding-top: 40px; border-top: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <h1>Especificacion Tecnica de Integracion</h1>
+            <div class="tagline">Audio Bridge &harr; Modulo IA CTN / Lakimi</div>
+        </div>
+        <div class="header-right">
+            <span class="badge badge-draft">Borrador</span><br>
+            <strong>SmartGroup</strong><br>
+            Abril 2026 &mdash; <span class="badge badge-version">v0.1</span><br>
+            Documento de trabajo para monografico tecnico
+        </div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+        <h3>Indice</h3>
+        <ul class="toc-list">
+            <li><span class="toc-num">1</span> Vision general de la integracion</li>
+            <li><span class="toc-num">2</span> Flujo de audio bidireccional (Bridge &rarr; IA)</li>
+            <li><span class="toc-num">3</span> Endpoints que expone Audio Bridge (IA &rarr; Bridge)</li>
+            <li><span class="toc-num">4</span> Endpoints que necesitamos del CTN / Lakimi</li>
+            <li><span class="toc-num">5</span> Configuracion de notaria (Backoffice CTN)</li>
+            <li><span class="toc-num">6</span> VIP Whitelist</li>
+            <li><span class="toc-num">7</span> Grabacion y transcripcion</li>
+            <li><span class="toc-num">8</span> Autenticacion</li>
+            <li><span class="toc-num">9</span> Resumen de responsabilidades</li>
+        </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 1 — VISION GENERAL -->
+    <!-- ============================================================ -->
+    <div class="section">
+        <span class="section-number">1</span>
+        <span class="section-title">Vision general de la integracion</span>
+        <p class="section-desc">Diagrama de interacciones entre los tres sistemas durante una llamada.</p>
+
+        <div class="diagram"><span class="amber">PSTN</span> (llamada entrante)
+   |
+   v
+<span class="hl">Asterisk / PekePBX</span>                         <span class="green">Backoffice CTN</span>
+   |                                             |
+   | AudioSocket (TCP, audio PCM16)              | REST API (config notaria)
+   v                                             v
+<span class="hl">Audio Bridge (SmartGroup)</span> ----GET config----> <span class="green">GET /notarias/{ddi}</span>
+   |         ^
+   |         |
+   | WSS     | HTTP (tools)
+   | audio   | POST /transfer
+   | stream  | POST /hangup
+   v         |
+<span class="accent">Modulo IA (CTN / Lakimi)</span>
+   |
+   | - Recibe audio del llamante
+   | - Procesa (STT + LLM + TTS)
+   | - Devuelve audio de respuesta
+   | - Solicita acciones via HTTP al Bridge</div>
+
+        <div class="info-box info-blue">
+            <strong>Cambio de modelo respecto a la version actual</strong>
+            En la implementacion actual con OpenAI, las acciones (transfer, hangup) viajan como eventos dentro del WebSocket.
+            En la integracion con CTN/Lakimi, las acciones se invocan como <strong>llamadas HTTP (tools)</strong> desde la IA hacia endpoints del Bridge.
+            El flujo de audio sigue siendo WebSocket bidireccional.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 2 — FLUJO DE AUDIO -->
+    <!-- ============================================================ -->
+    <div class="section">
+        <span class="section-number">2</span>
+        <span class="section-title">Flujo de audio bidireccional</span>
+        <span class="resp-tag resp-both">Acordar entre ambas partes</span>
+        <p class="section-desc">Protocolo WebSocket para el streaming de audio en tiempo real entre Bridge e IA.</p>
+
+        <div class="subsection-title">2.1 Conexion WebSocket</div>
+
+        <table class="spec-table">
+            <thead><tr><th>Parametro</th><th>Propuesta SmartGroup</th><th>Pendiente de CTN/Lakimi</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Protocolo</strong></td>
+                    <td><code>wss://</code> (WebSocket sobre TLS)</td>
+                    <td>Confirmar URL del endpoint</td>
+                </tr>
+                <tr>
+                    <td><strong>Autenticacion</strong></td>
+                    <td>Header <code>Authorization: Bearer {token}</code> o <code>X-Api-Key</code></td>
+                    <td>Confirmar metodo</td>
+                </tr>
+                <tr>
+                    <td><strong>Contexto inicial</strong></td>
+                    <td>Query params o primer mensaje JSON (ver 2.3)</td>
+                    <td>Confirmar formato preferido</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="subsection-title">2.2 Formato de audio</div>
+
+        <div class="info-box info-amber">
+            <strong>Punto critico a acordar</strong>
+            El formato de audio es el factor mas importante de la integracion. Si Bridge y la IA no usan el mismo codec/sample rate, hay que implementar conversion en tiempo real, lo que anade latencia y complejidad.
+        </div>
+
+        <table class="spec-table">
+            <thead><tr><th>Parametro</th><th>Bridge soporta</th><th>Pendiente de CTN/Lakimi</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Codec entrada (caller &rarr; IA)</strong></td>
+                    <td>G.711 &mu;-law (8kHz), PCM16 signed LE (8kHz/16kHz)</td>
+                    <td>&iquest;Que formato acepta la IA?</td>
+                </tr>
+                <tr>
+                    <td><strong>Codec salida (IA &rarr; caller)</strong></td>
+                    <td>G.711 &mu;-law (8kHz), PCM16 signed LE (8kHz/16kHz)</td>
+                    <td>&iquest;En que formato devuelve el TTS?</td>
+                </tr>
+                <tr>
+                    <td><strong>Sample rate</strong></td>
+                    <td>8000 Hz nativo (Asterisk). Resampling a 16/24kHz disponible.</td>
+                    <td>&iquest;Que sample rate requiere la IA?</td>
+                </tr>
+                <tr>
+                    <td><strong>Frame size</strong></td>
+                    <td>20ms (320 bytes @ 16-bit 8kHz)</td>
+                    <td>&iquest;Tamano de frame esperado?</td>
+                </tr>
+                <tr>
+                    <td><strong>Encoding en WebSocket</strong></td>
+                    <td>Binary frames (raw bytes) o Base64 en JSON</td>
+                    <td>&iquest;Prefieren binary o base64?</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="subsection-title">2.3 Handshake inicial &mdash; Contexto de la llamada</div>
+        <p style="font-size: 13px; color: var(--gray-600); margin-bottom: 12px;">
+            Al abrir la conexion WebSocket, el Bridge envia un mensaje JSON con el contexto de la llamada. Esto permite a la IA personalizar la atencion.
+        </p>
+
+        <div class="code"><span class="comment">// Primer mensaje del Bridge al abrir el WebSocket</span>
+{
+  <span class="key">"event"</span>: <span class="str">"session.start"</span>,
+  <span class="key">"interaction_id"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+  <span class="key">"notaria_id"</span>: <span class="str">"N001"</span>,
+  <span class="key">"notaria_name"</span>: <span class="str">"Notaria Garcia Lopez - Barcelona"</span>,
+  <span class="key">"caller_id"</span>: <span class="str">"+34912345678"</span>,
+  <span class="key">"ddi_origin"</span>: <span class="str">"934001234"</span>,
+  <span class="key">"call_type"</span>: <span class="str">"inbound"</span>,
+  <span class="key">"schedule"</span>: <span class="str">"business_hours"</span>,
+  <span class="key">"is_vip"</span>: <span class="bool">false</span>,
+  <span class="key">"audio_format"</span>: {
+    <span class="key">"codec"</span>: <span class="str">"pcm16"</span>,
+    <span class="key">"sample_rate"</span>: <span class="num">8000</span>,
+    <span class="key">"channels"</span>: <span class="num">1</span>,
+    <span class="key">"frame_ms"</span>: <span class="num">20</span>
+  }
+}</div>
+
+        <div class="subsection-title">2.4 Eventos del Bridge hacia la IA (via WebSocket)</div>
+        <table class="spec-table">
+            <thead><tr><th>Evento</th><th>Cuando</th><th>Payload</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>audio</code></td>
+                    <td>Continuamente mientras el llamante habla</td>
+                    <td>Binary frame (raw audio) o <code>{"event":"audio","data":"base64..."}</code></td>
+                </tr>
+                <tr>
+                    <td><code>call_ended</code></td>
+                    <td>El llamante ha colgado</td>
+                    <td><code>{"event":"call_ended","reason":"caller_hangup"}</code></td>
+                </tr>
+                <tr>
+                    <td><code>dtmf_received</code></td>
+                    <td>El llamante ha pulsado un digito DTMF</td>
+                    <td><code>{"event":"dtmf_received","digit":"5"}</code></td>
+                </tr>
+                <tr>
+                    <td><code>transfer_completed</code></td>
+                    <td>Resultado de una transferencia solicitada</td>
+                    <td><code>{"event":"transfer_completed","status":"connected"}</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="subsection-title">2.5 Audio de la IA hacia el llamante (via WebSocket)</div>
+        <table class="spec-table">
+            <thead><tr><th>Evento</th><th>Cuando</th><th>Payload</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>audio</code></td>
+                    <td>Respuesta TTS de la IA</td>
+                    <td>Binary frame (raw audio) o <code>{"event":"audio","data":"base64..."}</code></td>
+                </tr>
+                <tr>
+                    <td><code>audio_done</code></td>
+                    <td>La IA termino de hablar (fin del turno)</td>
+                    <td><code>{"event":"audio_done"}</code></td>
+                </tr>
+                <tr>
+                    <td><code>transcript</code></td>
+                    <td>Transcripcion parcial/final (si aplica)</td>
+                    <td><code>{"event":"transcript","role":"user|ai","text":"..."}</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 3 — ENDPOINTS QUE EXPONE BRIDGE -->
+    <!-- ============================================================ -->
+    <div class="page-break"></div>
+    <div class="section">
+        <span class="section-number">3</span>
+        <span class="section-title">Endpoints que expone Audio Bridge</span>
+        <span class="resp-tag resp-sg">SmartGroup desarrolla</span>
+        <p class="section-desc">Endpoints HTTP que la IA (CTN/Lakimi) puede invocar para ejecutar acciones sobre la telefonia. Estos son los "tools" que la IA tiene a su disposicion.</p>
+
+        <!-- TRANSFER -->
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method method-post">POST</span>
+                <span class="endpoint-path">/api/v1/calls/{call_id}/transfer</span>
+                <span class="endpoint-desc">Transferir llamada a extension humana</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Transfiere la llamada activa a una extension de la centralita de la notaria. El Bridge ejecuta un AMI Redirect contra Asterisk. La llamada con la IA se cierra y el llamante queda conectado con el destino.</p>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px;">Request body</strong>
+                <div class="code">{
+  <span class="key">"destination"</span>: <span class="str">"201"</span>,              <span class="comment">// Extension o numero destino</span>
+  <span class="key">"destination_type"</span>: <span class="str">"extension"</span>,   <span class="comment">// "extension" | "external" | "group"</span>
+  <span class="key">"announce"</span>: <span class="str">"Le paso con el notario"</span>  <span class="comment">// (opcional) Texto a reproducir antes</span>
+}</div>
+
+                <table class="spec-table" style="margin-top: 12px;">
+                    <thead><tr><th>Campo</th><th>Tipo</th><th>Requerido</th><th>Descripcion</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>destination</code></td><td>string</td><td><span class="required">requerido</span></td><td>Extension (ej: "201"), numero externo (ej: "+34917374206") o grupo de salto</td></tr>
+                        <tr><td><code>destination_type</code></td><td>string</td><td><span class="optional">opcional</span></td><td><code>extension</code> (default), <code>external</code>, <code>group</code></td></tr>
+                        <tr><td><code>announce</code></td><td>string</td><td><span class="optional">opcional</span></td><td>Texto de cortesia para reproducir antes de transferir (TTS local)</td></tr>
+                    </tbody>
+                </table>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; display: block; margin-top: 16px;">Respuestas</strong>
+                <table class="spec-table">
+                    <thead><tr><th>Codigo</th><th>Significado</th><th>Body</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="status-code status-2xx">200</span></td><td>Transferencia iniciada correctamente</td><td><code>{"status":"connected","destination":"201"}</code></td></tr>
+                        <tr><td><span class="status-code status-4xx">404</span></td><td>Llamada no encontrada o ya finalizada</td><td><code>{"error":"call_not_found"}</code></td></tr>
+                        <tr><td><span class="status-code status-4xx">409</span></td><td>Llamada ya en transferencia</td><td><code>{"error":"call_already_transferring"}</code></td></tr>
+                        <tr><td><span class="status-code status-5xx">502</span></td><td>Error en la centralita (AMI)</td><td><code>{"error":"pbx_transfer_failed","detail":"..."}</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- HANGUP -->
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method method-post">POST</span>
+                <span class="endpoint-path">/api/v1/calls/{call_id}/hangup</span>
+                <span class="endpoint-desc">Finalizar llamada</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Finaliza la llamada activa. El Bridge cierra la conexion de audio con Asterisk (hangup) y libera los recursos.</p>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px;">Request body</strong>
+                <div class="code">{
+  <span class="key">"reason"</span>: <span class="str">"resolved"</span>   <span class="comment">// "resolved" | "voicemail" | "no_answer" | "error"</span>
+}</div>
+
+                <table class="spec-table" style="margin-top: 12px;">
+                    <thead><tr><th>Campo</th><th>Tipo</th><th>Requerido</th><th>Descripcion</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>reason</code></td><td>string</td><td><span class="optional">opcional</span></td><td>Motivo de finalizacion. Default: <code>resolved</code>. Se registra en el CDR.</td></tr>
+                    </tbody>
+                </table>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; display: block; margin-top: 16px;">Respuestas</strong>
+                <table class="spec-table">
+                    <thead><tr><th>Codigo</th><th>Significado</th><th>Body</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="status-code status-2xx">200</span></td><td>Llamada finalizada</td><td><code>{"status":"completed","reason":"resolved"}</code></td></tr>
+                        <tr><td><span class="status-code status-4xx">404</span></td><td>Llamada no encontrada</td><td><code>{"error":"call_not_found"}</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GET STATUS -->
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method method-get">GET</span>
+                <span class="endpoint-path">/api/v1/calls/{call_id}/status</span>
+                <span class="endpoint-desc">Consultar estado de la llamada</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Devuelve el estado actual de una llamada. Util para que la IA verifique el resultado de una accion.</p>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px;">Respuesta</strong>
+                <div class="code">{
+  <span class="key">"call_id"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+  <span class="key">"state"</span>: <span class="str">"streaming"</span>,          <span class="comment">// ringing | connected | streaming | transferring | completed</span>
+  <span class="key">"caller_id"</span>: <span class="str">"+34912345678"</span>,
+  <span class="key">"notaria_id"</span>: <span class="str">"N001"</span>,
+  <span class="key">"ddi"</span>: <span class="str">"934001234"</span>,
+  <span class="key">"direction"</span>: <span class="str">"inbound"</span>,
+  <span class="key">"start_time"</span>: <span class="str">"2026-04-07T10:30:00Z"</span>,
+  <span class="key">"duration_seconds"</span>: <span class="num">45.2</span>,
+  <span class="key">"transcript_user"</span>: <span class="str">"Hola, queria pedir cita..."</span>,
+  <span class="key">"transcript_ai"</span>: <span class="str">"Buenos dias, con mucho gusto..."</span>
+}</div>
+            </div>
+        </div>
+
+        <div class="info-box info-green">
+            <strong>Estos endpoints ya existen parcialmente en el Bridge</strong>
+            El endpoint <code>/api/v1/calls/{call_id}/status</code> ya esta implementado. Los endpoints de <code>/transfer</code> y <code>/hangup</code> son nuevos &mdash; actualmente esas acciones se ejecutan via eventos WebSocket internos. SmartGroup se compromete a exponerlos como HTTP REST para la integracion con CTN/Lakimi.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 4 — ENDPOINTS QUE NECESITAMOS -->
+    <!-- ============================================================ -->
+    <div class="page-break"></div>
+    <div class="section">
+        <span class="section-number">4</span>
+        <span class="section-title">Endpoints que necesitamos de CTN / Lakimi</span>
+        <span class="resp-tag resp-ctn">CTN / Lakimi proporciona</span>
+        <p class="section-desc">Informacion y servicios que el Bridge necesita para funcionar.</p>
+
+        <table class="spec-table">
+            <thead><tr><th style="width: 25%;">Necesitamos</th><th>Descripcion</th><th style="width: 20%;">Ejemplo</th><th style="width: 12%;">Prioridad</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Endpoint WebSocket IA</strong></td>
+                    <td>URL del servicio de IA donde enviar el audio en streaming bidireccional</td>
+                    <td><code>wss://ia.ctn.es/v1/realtime</code></td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Formato de audio</strong></td>
+                    <td>Codec, sample rate, encoding y frame size que acepta/devuelve la IA</td>
+                    <td>PCM16 16kHz mono</td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Metodo autenticacion</strong></td>
+                    <td>Como autenticar la conexion WebSocket y las llamadas HTTP</td>
+                    <td>API Key / Bearer / mTLS</td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Protocolo de mensajes WebSocket</strong></td>
+                    <td>Formato de los mensajes JSON para eventos, audio y control de sesion</td>
+                    <td>JSON + binary frames</td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Parametros de contexto</strong></td>
+                    <td>Que datos acepta la IA al inicio de cada llamada y en que formato</td>
+                    <td>Ver seccion 2.3</td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Entorno sandbox</strong></td>
+                    <td>Entorno de pruebas para integracion sin afectar produccion</td>
+                    <td><code>wss://sandbox.ia.ctn.es/</code></td>
+                    <td><span class="required">P0 - critico</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 5 — CONFIG NOTARIA -->
+    <!-- ============================================================ -->
+    <div class="section">
+        <span class="section-number">5</span>
+        <span class="section-title">Configuracion de notaria (Backoffice CTN)</span>
+        <span class="resp-tag resp-ctn">CTN proporciona</span>
+        <p class="section-desc">El Bridge consultara un endpoint del backoffice del CTN para obtener la configuracion de cada notaria al recibir una llamada.</p>
+
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method method-get">GET</span>
+                <span class="endpoint-path">/api/v1/notarias/{ddi}/config</span>
+                <span class="endpoint-desc">Propuesta de contrato &mdash; Pendiente de acordar</span>
+            </div>
+            <div class="endpoint-body">
+                <p>El Bridge invoca este endpoint al recibir una llamada, usando el DDI como clave de busqueda. El backoffice devuelve la configuracion de la notaria asociada a ese DDI.</p>
+
+                <strong style="font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px;">Respuesta esperada (propuesta)</strong>
+                <div class="code">{
+  <span class="key">"notaria_id"</span>: <span class="str">"N001"</span>,
+  <span class="key">"name"</span>: <span class="str">"Notaria Garcia Lopez - Barcelona"</span>,
+  <span class="key">"enabled"</span>: <span class="bool">true</span>,
+  <span class="key">"ddis"</span>: [<span class="str">"934001234"</span>, <span class="str">"934001235"</span>],
+
+  <span class="key">"schedule"</span>: {
+    <span class="key">"timezone"</span>: <span class="str">"Europe/Madrid"</span>,
+    <span class="key">"business_hours"</span>: [
+      { <span class="key">"days"</span>: <span class="str">"mon-fri"</span>, <span class="key">"start"</span>: <span class="str">"09:00"</span>, <span class="key">"end"</span>: <span class="str">"14:00"</span> },
+      { <span class="key">"days"</span>: <span class="str">"mon-fri"</span>, <span class="key">"start"</span>: <span class="str">"16:00"</span>, <span class="key">"end"</span>: <span class="str">"19:00"</span> }
+    ]
+  },
+
+  <span class="key">"transfers"</span>: {
+    <span class="key">"default"</span>: <span class="str">"201"</span>,
+    <span class="key">"extensions"</span>: {
+      <span class="key">"recepcion"</span>: <span class="str">"200"</span>,
+      <span class="key">"notario"</span>: <span class="str">"201"</span>,
+      <span class="key">"oficial"</span>: <span class="str">"202"</span>
+    }
+  },
+
+  <span class="key">"vip_whitelist"</span>: [
+    { <span class="key">"caller_id"</span>: <span class="str">"+34600111222"</span>, <span class="key">"name"</span>: <span class="str">"Juan Perez"</span>, <span class="key">"preferred_ext"</span>: <span class="str">"201"</span> }
+  ]
+}</div>
+
+                <div class="info-box info-amber" style="margin-top: 12px;">
+                    <strong>Cache y rendimiento</strong>
+                    Para no consultar el backoffice en cada llamada, proponemos cachear la config de notaria en el Bridge con un TTL de 5 minutos (configurable). Si el backoffice no responde, se usa la cache. Si no hay cache, se usa config local de fallback.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 6 — VIP WHITELIST -->
+    <!-- ============================================================ -->
+    <div class="page-break"></div>
+    <div class="section">
+        <span class="section-number">6</span>
+        <span class="section-title">VIP Whitelist</span>
+        <span class="resp-tag resp-both">Acordar enfoque</span>
+        <p class="section-desc">Mecanismo para bypassear el asistente de voz cuando llama un contacto VIP.</p>
+
+        <div class="subsection-title">Propuesta: implementacion en dos niveles</div>
+
+        <div class="two-col">
+            <div>
+                <div class="info-box info-blue" style="height: 100%;">
+                    <strong>Nivel 1 &mdash; Centralita (recomendado)</strong>
+                    Asterisk comprueba el caller_id contra la whitelist ANTES de enviar la llamada al Bridge.
+                    Si es VIP, reproduce locution: <em>"Si conoce la extension, marquela"</em>.
+                    <br><br>
+                    <strong>Ventaja:</strong> La llamada VIP nunca llega a la IA. Cero coste, cero latencia.
+                    <br><br>
+                    <strong>Implementacion:</strong> El dialplan consulta la lista via curl al backoffice, o la mantiene en una base de datos AstDB local sincronizada periodicamente.
+                </div>
+            </div>
+            <div>
+                <div class="info-box info-green" style="height: 100%;">
+                    <strong>Nivel 2 &mdash; Bridge (fallback)</strong>
+                    Si la whitelist no puede implementarse en la centralita (ej: centralita de terceros), el Bridge puede hacer la comprobacion al recibir la llamada:
+                    <br><br>
+                    1. Recibe llamada<br>
+                    2. Consulta config de notaria (incluye vip_whitelist)<br>
+                    3. Si caller_id esta en la lista &rarr; reproduce locution IVR<br>
+                    4. Si marca extension &rarr; transfer directo<br>
+                    5. Si no marca &rarr; continua con la IA
+                </div>
+            </div>
+        </div>
+
+        <div class="diagram"><span class="hl">Flujo VIP en centralita (Nivel 1 — recomendado)</span>
+
+Llamada entrante &rarr; Asterisk dialplan
+   |
+   |&mdash; Caller en VIP list?
+   |     |
+   |     SI &rarr; Locution "Si conoce la extension, marquela"
+   |     |      |&mdash; Marca extension &rarr; Transfer directo
+   |     |      |&mdash; No marca / timeout &rarr; <span class="amber">Pendiente definir</span> (IA? Recepcion? Buzon?)
+   |     |
+   |     NO &rarr; AudioSocket &rarr; Bridge &rarr; IA (flujo normal)</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 7 — GRABACION Y TRANSCRIPCION -->
+    <!-- ============================================================ -->
+    <div class="section">
+        <span class="section-number">7</span>
+        <span class="section-title">Grabacion y transcripcion</span>
+        <p class="section-desc">Responsabilidades de cada parte.</p>
+
+        <table class="spec-table">
+            <thead><tr><th style="width: 25%;">Funcion</th><th>Responsable</th><th>Detalle</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Grabacion segmento IA</strong></td>
+                    <td><span class="resp-tag resp-sg" style="margin:0;">SmartGroup</span></td>
+                    <td>El Bridge graba dos canales WAV separados: audio del llamante + audio de la IA. Formato PCM16 mono.</td>
+                </tr>
+                <tr>
+                    <td><strong>Grabacion segmento humano</strong></td>
+                    <td><span class="resp-tag resp-sg" style="margin:0;">SmartGroup</span></td>
+                    <td>Si la llamada se transfiere a un humano, Asterisk puede grabar el segmento post-transfer via MixMonitor. El Bridge coordina el inicio/fin de grabacion.</td>
+                </tr>
+                <tr>
+                    <td><strong>Transcripcion</strong></td>
+                    <td><span class="resp-tag resp-lakimi" style="margin:0;">Lakimi / CTN</span></td>
+                    <td>La IA es responsable del STT. Opcionalmente puede enviar eventos <code>transcript</code> al Bridge via WebSocket para mostrarlos en el panel admin en vivo.</td>
+                </tr>
+                <tr>
+                    <td><strong>Almacenamiento grabaciones</strong></td>
+                    <td><span class="resp-tag resp-both" style="margin:0;">Acordar</span></td>
+                    <td>Actualmente en disco local del Bridge. &iquest;Se requiere enviar a un storage centralizado del CTN? &iquest;Retention policy?</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 8 — AUTENTICACION -->
+    <!-- ============================================================ -->
+    <div class="section">
+        <span class="section-number">8</span>
+        <span class="section-title">Autenticacion</span>
+        <span class="resp-tag resp-both">Acordar entre ambas partes</span>
+        <p class="section-desc">Hay tres flujos de autenticacion que definir.</p>
+
+        <table class="spec-table">
+            <thead><tr><th style="width: 30%;">Flujo</th><th>Direccion</th><th>Propuesta</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Bridge &rarr; IA (WebSocket)</strong></td>
+                    <td>SmartGroup llama a CTN/Lakimi</td>
+                    <td>Header <code>Authorization: Bearer {token}</code> en el upgrade WebSocket. Token emitido por CTN.</td>
+                </tr>
+                <tr>
+                    <td><strong>IA &rarr; Bridge (tools HTTP)</strong></td>
+                    <td>CTN/Lakimi llama a SmartGroup</td>
+                    <td>Header <code>X-Api-Key: {key}</code>. Key emitida por SmartGroup y compartida con CTN/Lakimi.</td>
+                </tr>
+                <tr>
+                    <td><strong>Bridge &rarr; Backoffice (config)</strong></td>
+                    <td>SmartGroup llama a CTN</td>
+                    <td>Header <code>Authorization: Bearer {token}</code> o API Key. Token emitido por CTN.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box info-blue">
+            <strong>Seguridad de red</strong>
+            Todos los flujos deben ir sobre TLS. Si Bridge y la IA estan en redes distintas, considerar VPN site-to-site o IP whitelisting adicional.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 9 — RESUMEN RESPONSABILIDADES -->
+    <!-- ============================================================ -->
+    <div class="page-break"></div>
+    <div class="section">
+        <span class="section-number">9</span>
+        <span class="section-title">Resumen de responsabilidades</span>
+        <p class="section-desc">Quien hace que.</p>
+
+        <table class="spec-table">
+            <thead><tr><th style="width: 40%;">Tarea</th><th style="width: 20%;">SmartGroup</th><th style="width: 20%;">CTN</th><th style="width: 20%;">Lakimi</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Streaming audio via WebSocket</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Envia</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--success); font-weight: 700;">Recibe + procesa</td>
+                </tr>
+                <tr>
+                    <td><strong>Endpoints transfer / hangup (tools)</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Expone</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--success); font-weight: 700;">Invoca</td>
+                </tr>
+                <tr>
+                    <td><strong>Endpoint config notaria (backoffice)</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Consume</td>
+                    <td style="text-align:center; color: var(--accent); font-weight: 700;">Expone</td>
+                    <td style="text-align:center;">&mdash;</td>
+                </tr>
+                <tr>
+                    <td><strong>Grabacion de llamadas</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Graba</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center;">&mdash;</td>
+                </tr>
+                <tr>
+                    <td><strong>Transcripcion (STT)</strong></td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--success); font-weight: 700;">Procesa</td>
+                </tr>
+                <tr>
+                    <td><strong>VIP Whitelist (datos)</strong></td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--accent); font-weight: 700;">Provee datos</td>
+                    <td style="text-align:center;">&mdash;</td>
+                </tr>
+                <tr>
+                    <td><strong>VIP Whitelist (logica dialplan)</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Implementa</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center;">&mdash;</td>
+                </tr>
+                <tr>
+                    <td><strong>Panel admin / supervision</strong></td>
+                    <td style="text-align:center; color: var(--primary); font-weight: 700;">Desarrolla</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center;">&mdash;</td>
+                </tr>
+                <tr>
+                    <td><strong>Endpoint WebSocket IA + credenciales</strong></td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--success); font-weight: 700;">Provee</td>
+                </tr>
+                <tr>
+                    <td><strong>Entorno sandbox</strong></td>
+                    <td style="text-align:center;">&mdash;</td>
+                    <td style="text-align:center; color: var(--accent); font-weight: 700;">Coordina</td>
+                    <td style="text-align:center; color: var(--success); font-weight: 700;">Provee</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box info-blue" style="margin-top: 24px;">
+            <strong>Proximos pasos propuestos</strong>
+            <ol style="margin: 8px 0 0 20px; color: var(--gray-600);">
+                <li>CTN/Lakimi comparte la spec de su API de voz (endpoint WSS, formato audio, auth, protocolo mensajes).</li>
+                <li>CTN comparte la spec del backoffice de config de notarias (o acuerda el contrato propuesto en seccion 5).</li>
+                <li>SmartGroup desarrolla el adapter para la IA de Lakimi + expone los endpoints HTTP de tools (transfer/hangup).</li>
+                <li>Se acuerda el enfoque de VIP Whitelist y quien provee la lista.</li>
+                <li>Pruebas de integracion E2E en entorno sandbox.</li>
+                <li>Piloto con 1 notaria real.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <span><strong>SmartGroup</strong> &bull; Audio Bridge &mdash; Especificacion Tecnica de Integracion &bull; Abril 2026</span>
+        <span>Documento de trabajo &mdash; Borrador v0.1</span>
+    </div>
+
+</div>
+
+</body>
+</html>
