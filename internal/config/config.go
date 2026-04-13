@@ -24,7 +24,19 @@ type Config struct {
 	Admin      AdminConfig      `yaml:"admin"`
 	Backoffice BackofficeConfig `yaml:"backoffice"`
 	Webhook    WebhookConfig    `yaml:"webhook"`
+	Lakimi     LakimiConfig     `yaml:"lakimi"`
 	Tenants    []TenantConfig   `yaml:"tenants"`
+}
+
+// LakimiConfig holds configuration for the Lakimi/CTN multiplexed WSS connection
+type LakimiConfig struct {
+	Endpoint            string `yaml:"endpoint"`              // wss://lakimi.ctn.es/v1/realtime
+	TLSCert             string `yaml:"tls_cert"`              // Path to client certificate
+	TLSKey              string `yaml:"tls_key"`               // Path to client private key
+	TLSCA               string `yaml:"tls_ca"`                // Path to Lakimi CA certificate
+	FrameSizeMs         int    `yaml:"frame_size_ms"`         // Outbound frame size (default 30)
+	PingInterval        int    `yaml:"ping_interval"`         // Keepalive interval in seconds (default 30)
+	ReconnectMaxRetries int    `yaml:"reconnect_max_retries"` // Max reconnection attempts (default 5)
 }
 
 type ServerConfig struct {
@@ -447,6 +459,15 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Webhook.RetryCount == 0 {
 		cfg.Webhook.RetryCount = 3
+	}
+	if cfg.Lakimi.FrameSizeMs == 0 {
+		cfg.Lakimi.FrameSizeMs = 30
+	}
+	if cfg.Lakimi.PingInterval == 0 {
+		cfg.Lakimi.PingInterval = 30
+	}
+	if cfg.Lakimi.ReconnectMaxRetries == 0 {
+		cfg.Lakimi.ReconnectMaxRetries = 5
 	}
 	return &cfg, nil
 }

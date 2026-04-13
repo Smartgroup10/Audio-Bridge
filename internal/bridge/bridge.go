@@ -104,26 +104,28 @@ func (ab *audioBuffer) Reset() {
 
 // Bridge orchestrates the audio flow between Asterisk and the AI module
 type Bridge struct {
-	cfg     *config.Config
-	tenants *config.TenantRegistry
-	calls   *models.CallRegistry
-	ami     *ami.Client
-	db      *db.DB
-	sseHub  *models.SSEHub
-	webhook *webhook.Client
-	logger  *zap.Logger
+	cfg       *config.Config
+	tenants   *config.TenantRegistry
+	calls     *models.CallRegistry
+	ami       *ami.Client
+	db        *db.DB
+	sseHub    *models.SSEHub
+	webhook   *webhook.Client
+	lakimiHub *wssclient.LakimiHub
+	logger    *zap.Logger
 }
 
-func New(cfg *config.Config, tenants *config.TenantRegistry, calls *models.CallRegistry, amiClient *ami.Client, database *db.DB, sseHub *models.SSEHub, webhookClient *webhook.Client, logger *zap.Logger) *Bridge {
+func New(cfg *config.Config, tenants *config.TenantRegistry, calls *models.CallRegistry, amiClient *ami.Client, database *db.DB, sseHub *models.SSEHub, webhookClient *webhook.Client, lakimiHub *wssclient.LakimiHub, logger *zap.Logger) *Bridge {
 	return &Bridge{
-		cfg:     cfg,
-		tenants: tenants,
-		calls:   calls,
-		ami:     amiClient,
-		db:      database,
-		sseHub:  sseHub,
-		webhook: webhookClient,
-		logger:  logger,
+		cfg:       cfg,
+		tenants:   tenants,
+		calls:     calls,
+		ami:       amiClient,
+		db:        database,
+		sseHub:    sseHub,
+		webhook:   webhookClient,
+		lakimiHub: lakimiHub,
+		logger:    logger,
 	}
 }
 
@@ -412,14 +414,55 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 		}
 		aiClient = oaiClient
 
-	case "ctn":
-		// CTN/Lakimi mode: the external AI connects to us via WSS (not implemented yet).
-		// For now, fall back to transferring the call directly.
-		// TODO: implement WSS server for Lakimi when spec is available
-		logger.Warn("CTN mode: waiting for external AI connection (not yet implemented)")
-		b.fallbackTransfer(call, tenant, logger)
-		asConn.Close()
-		return
+	case "lakimi":
+		if b.lakimiHub == nil {
+			logger.Error("Lakimi hub not initialized")
+			b.fallbackTransfer(call, tenant, logger)
+			asConn.Close()
+			return
+		}
+		session := b.lakimiHub.NewSession(callID, connectParams)
+
+		// Set transcript callbacks (same pattern as OpenAI)
+		session.OnUserTranscript = func(text string) {
+			call.AppendTranscriptUser(text)
+			b.sseHub.Broadcast(models.SSEEvent{
+				Type: "transcript_user",
+				Data: map[string]interface{}{
+					"call_id": callID,
+					"text":    text,
+				},
+			})
+			if b.db != nil {
+				b.db.InsertLog(db.InteractionLog{
+					CallID:    callID,
+					Timestamp: time.Now().Format(time.RFC3339),
+					Direction: "user",
+					Content:   text,
+					EventType: "speech",
+				})
+			}
+		}
+		session.OnAITranscript = func(text string) {
+			call.AppendTranscriptAI(text)
+			b.sseHub.Broadcast(models.SSEEvent{
+				Type: "transcript_ai",
+				Data: map[string]interface{}{
+					"call_id": callID,
+					"text":    text,
+				},
+			})
+			if b.db != nil {
+				b.db.InsertLog(db.InteractionLog{
+					CallID:    callID,
+					Timestamp: time.Now().Format(time.RFC3339),
+					Direction: "ai",
+					Content:   text,
+					EventType: "speech",
+				})
+			}
+		}
+		aiClient = session
 
 	default:
 		wssClient := wssclient.NewClient(b.cfg.AI, logger)

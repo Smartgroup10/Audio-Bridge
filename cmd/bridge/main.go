@@ -20,6 +20,7 @@ import (
 	"github.com/smartgroup/audio-bridge/internal/models"
 	"github.com/smartgroup/audio-bridge/internal/recording"
 	"github.com/smartgroup/audio-bridge/internal/webhook"
+	"github.com/smartgroup/audio-bridge/internal/wssclient"
 )
 
 func main() {
@@ -119,8 +120,24 @@ func main() {
 	// Create webhook client (nil if disabled)
 	webhookClient := webhook.NewClient(cfg.Webhook, logger.Named("webhook"))
 
+	// Initialize Lakimi hub if AI type is "lakimi"
+	var lakimiHub *wssclient.LakimiHub
+	if cfg.AI.Type == "lakimi" {
+		if cfg.Lakimi.Endpoint == "" {
+			logger.Fatal("Lakimi mode requires lakimi.endpoint in config")
+		}
+		lakimiHub = wssclient.NewLakimiHub(cfg.Lakimi, logger)
+		if err := lakimiHub.Connect(ctx); err != nil {
+			logger.Fatal("Failed to connect to Lakimi", zap.Error(err))
+		}
+		defer lakimiHub.Close()
+		logger.Info("Lakimi hub connected",
+			zap.String("endpoint", cfg.Lakimi.Endpoint),
+			zap.Int("frame_size_ms", cfg.Lakimi.FrameSizeMs))
+	}
+
 	// Create the bridge
-	b := bridge.New(cfg, tenants, calls, amiClient, database, sseHub, webhookClient, logger.Named("bridge"))
+	b := bridge.New(cfg, tenants, calls, amiClient, database, sseHub, webhookClient, lakimiHub, logger.Named("bridge"))
 
 	// Handle OS signals
 	sigCh := make(chan os.Signal, 1)

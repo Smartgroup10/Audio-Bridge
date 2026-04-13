@@ -51,6 +51,16 @@ webhook:
   timeout_sec: 10
   retry_count: 3
 
+# --- Lakimi/CTN Multiplexed WSS (used when ai.type = "lakimi") ---
+lakimi:
+  endpoint: "wss://lakimi.ctn.es/v1/realtime"
+  tls_cert: "/opt/audio-bridge/certs/client.crt"
+  tls_key: "/opt/audio-bridge/certs/client.key"
+  tls_ca: "/opt/audio-bridge/certs/lakimi-ca.crt"
+  frame_size_ms: 30
+  ping_interval: 30
+  reconnect_max_retries: 5
+
 # --- Database ---
 database:
   path: "/opt/audio-bridge/data/bridge.db"
