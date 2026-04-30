@@ -32,7 +32,7 @@ type Payload struct {
 	RecordingURL  string  `json:"recording_url,omitempty"` // Download URL for mixed MP3
 	Schedule      string  `json:"schedule,omitempty"`
 	Reason        string  `json:"reason,omitempty"` // For call.routed: "vip", "after_hours"
-	Timestamp     string  `json:"timestamp"`
+	Timestamp     int64   `json:"timestamp"`
 }
 
 // Client sends webhook notifications to CTN

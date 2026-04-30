@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,14 +16,17 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/smartgroup/audio-bridge/internal/bridge"
 	"github.com/smartgroup/audio-bridge/internal/config"
+	"github.com/smartgroup/audio-bridge/internal/ctn"
 	"github.com/smartgroup/audio-bridge/internal/db"
 	"github.com/smartgroup/audio-bridge/internal/dialplan"
 	"github.com/smartgroup/audio-bridge/internal/models"
+	"github.com/smartgroup/audio-bridge/internal/phone"
 	"github.com/smartgroup/audio-bridge/internal/webhook"
 )
 
@@ -104,9 +108,10 @@ type Server struct {
 	limiter       *rateLimiter
 	provisioner   *dialplan.Provisioner
 	webhookClient *webhook.Client
+	ctnClient     *ctn.Client
 }
 
-func NewServer(b *bridge.Bridge, calls *models.CallRegistry, database *db.DB, tenants *config.TenantRegistry, sseHub *models.SSEHub, cfg *config.Config, webhookClient *webhook.Client, logger *zap.Logger) *Server {
+func NewServer(b *bridge.Bridge, calls *models.CallRegistry, database *db.DB, tenants *config.TenantRegistry, sseHub *models.SSEHub, cfg *config.Config, webhookClient *webhook.Client, ctnClient *ctn.Client, logger *zap.Logger) *Server {
 	gin.SetMode(gin.ReleaseMode)
 
 	s := &Server{
@@ -123,6 +128,7 @@ func NewServer(b *bridge.Bridge, calls *models.CallRegistry, database *db.DB, te
 		limiter:       newRateLimiter(1, time.Second, 30), // 1 token/sec, burst 30
 		provisioner:   dialplan.NewProvisioner("", logger.Named("dialplan")),
 		webhookClient: webhookClient,
+		ctnClient:     ctnClient,
 	}
 
 	// Restore sessions from DB so tokens survive restarts
@@ -222,7 +228,21 @@ func (s *Server) setupRoutes() {
 }
 
 func (s *Server) Start(addr string) error {
-	s.logger.Info("API server starting", zap.String("addr", addr))
+	tlsCfg := s.cfg.TLS
+	if tlsCfg.CertFile != "" && tlsCfg.KeyFile != "" {
+		s.logger.Info("API server starting with TLS 1.3",
+			zap.String("addr", addr),
+			zap.String("cert", tlsCfg.CertFile))
+		srv := &http.Server{
+			Addr:    addr,
+			Handler: s.router,
+			TLSConfig: &tls.Config{
+				MinVersion: tls.VersionTLS13,
+			},
+		}
+		return srv.ListenAndServeTLS(tlsCfg.CertFile, tlsCfg.KeyFile)
+	}
+	s.logger.Info("API server starting (no TLS)", zap.String("addr", addr))
 	return s.router.Run(addr)
 }
 
@@ -234,7 +254,7 @@ func (s *Server) healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":       "ok",
 		"active_calls": s.calls.Count(),
-		"timestamp":    time.Now().UTC().Format(time.RFC3339),
+		"timestamp":    time.Now().UnixMilli(),
 	})
 }
 
@@ -259,7 +279,7 @@ func (s *Server) precreateCall(c *gin.Context) {
 
 	call := &models.Call{
 		ID:              req.UUID,
-		CallerID:        req.CallerID,
+		CallerID:        phone.NormalizeE164(req.CallerID),
 		DDI:             req.DDI,
 		NotariaID:       req.NotariaID,
 		Direction:       dir,
@@ -318,7 +338,7 @@ func (s *Server) getCallStatus(c *gin.Context) {
 		Direction:       string(call.Direction),
 		CallerID:        call.CallerID,
 		NotariaID:       call.NotariaID,
-		StartTime:       call.StartTime.Format(time.RFC3339),
+		StartTime:       call.StartTime.UnixMilli(),
 		DurationSeconds: call.Duration,
 		EndReason:       call.EndReason,
 	})
@@ -335,7 +355,7 @@ func (s *Server) listActiveCalls(c *gin.Context) {
 				Direction: string(call.Direction),
 				CallerID:  call.CallerID,
 				NotariaID: call.NotariaID,
-				StartTime: call.StartTime.Format(time.RFC3339),
+				StartTime: call.StartTime.UnixMilli(),
 			})
 		}
 	}
@@ -368,7 +388,7 @@ func (s *Server) getStats(c *gin.Context) {
 		"completed_calls": completed,
 		"inbound_total":   inbound,
 		"outbound_total":  outbound,
-		"timestamp":       time.Now().UTC().Format(time.RFC3339),
+		"timestamp":       time.Now().UnixMilli(),
 	})
 }
 
@@ -382,7 +402,7 @@ func (s *Server) getStats(c *gin.Context) {
 // Actions: "ai" (send to AI), "vip" (VIP direct), "closed" (after hours), "direct" (bypass)
 func (s *Server) checkRouting(c *gin.Context) {
 	ddi := c.Query("ddi")
-	callerID := c.Query("caller_id")
+	callerID := phone.NormalizeE164(c.Query("caller_id"))
 
 	if ddi == "" {
 		c.String(http.StatusBadRequest, "ai|||unknown")
@@ -400,19 +420,81 @@ func (s *Server) checkRouting(c *gin.Context) {
 
 	notariaID := tenant.NotariaID
 	transferDest := tenant.Transfers.Default
+	callID := uuid.New().String()
 
-	// Check VIP whitelist
-	if callerID != "" && tenant.IsVIP(callerID) {
-		s.logger.Info("Routing: VIP caller detected",
+	// --- CTN /handle integration (replaces local VIP check when enabled) ---
+	if s.ctnClient != nil && callerID != "" {
+		resp, err := s.ctnClient.Handle(callID, notariaID, callerID)
+		if err != nil {
+			s.logger.Warn("CTN /handle failed, falling back to local VIP check",
+				zap.String("ddi", ddi),
+				zap.Error(err))
+			// Fall through to local VIP check below
+		} else {
+			switch resp.Action {
+			case "vip-transfer":
+				dest := transferDest
+				if resp.VIP != nil && resp.VIP.PhoneNumber != "" {
+					dest = resp.VIP.PhoneNumber
+				}
+				vipName := ""
+				if resp.VIP != nil {
+					vipName = resp.VIP.Name
+				}
+				s.logger.Info("Routing: CTN VIP transfer",
+					zap.String("ddi", ddi),
+					zap.String("caller_id", callerID),
+					zap.String("notaria_id", notariaID),
+					zap.String("vip_name", vipName),
+					zap.String("destination", dest))
+
+				if s.webhookClient != nil {
+					s.webhookClient.Send(webhook.Payload{
+						Event:         webhook.EventCallRouted,
+						InteractionID: callID,
+						NotariaID:     notariaID,
+						CallerID:      callerID,
+						DDI:           ddi,
+						Direction:     "inbound",
+						Result:        "vip",
+						Reason:        "vip",
+						Schedule:      "vip",
+						TransferDest:  dest,
+						Timestamp:     time.Now().UnixMilli(),
+					})
+				}
+
+				c.String(http.StatusOK, "vip|%s|%s|vip", notariaID, dest)
+				return
+
+			case "reject":
+				s.logger.Info("Routing: CTN rejected call",
+					zap.String("ddi", ddi),
+					zap.String("caller_id", callerID),
+					zap.String("notaria_id", notariaID))
+
+				c.String(http.StatusOK, "reject|%s||rejected", notariaID)
+				return
+
+			case "progress":
+				// CTN says proceed normally — continue to business hours check
+				s.logger.Debug("Routing: CTN progress, checking business hours",
+					zap.String("ddi", ddi))
+			}
+		}
+	}
+
+	// --- Local VIP whitelist fallback (used when CTN is disabled or failed) ---
+	if s.ctnClient == nil && callerID != "" && tenant.IsVIP(callerID) {
+		s.logger.Info("Routing: VIP caller detected (local)",
 			zap.String("ddi", ddi),
 			zap.String("caller_id", callerID),
 			zap.String("notaria_id", notariaID))
 
-		// Webhook: call.routed (VIP)
 		if s.webhookClient != nil {
 			s.webhookClient.Send(webhook.Payload{
 				Event:         webhook.EventCallRouted,
-				InteractionID: fmt.Sprintf("routed-%s-%d", callerID, time.Now().Unix()),
+				InteractionID: callID,
 				NotariaID:     notariaID,
 				CallerID:      callerID,
 				DDI:           ddi,
@@ -421,7 +503,7 @@ func (s *Server) checkRouting(c *gin.Context) {
 				Reason:        "vip",
 				Schedule:      "vip",
 				TransferDest:  transferDest,
-				Timestamp:     time.Now().UTC().Format(time.RFC3339),
+				Timestamp:     time.Now().UnixMilli(),
 			})
 		}
 
@@ -437,11 +519,10 @@ func (s *Server) checkRouting(c *gin.Context) {
 			zap.String("notaria_id", notariaID),
 			zap.String("schedule", schedule))
 
-		// Webhook: call.routed (after hours)
 		if s.webhookClient != nil {
 			s.webhookClient.Send(webhook.Payload{
 				Event:         webhook.EventCallRouted,
-				InteractionID: fmt.Sprintf("routed-%s-%d", callerID, time.Now().Unix()),
+				InteractionID: callID,
 				NotariaID:     notariaID,
 				CallerID:      callerID,
 				DDI:           ddi,
@@ -450,7 +531,7 @@ func (s *Server) checkRouting(c *gin.Context) {
 				Reason:        "after_hours",
 				Schedule:      schedule,
 				TransferDest:  transferDest,
-				Timestamp:     time.Now().UTC().Format(time.RFC3339),
+				Timestamp:     time.Now().UnixMilli(),
 			})
 		}
 

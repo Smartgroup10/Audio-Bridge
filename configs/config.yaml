@@ -43,13 +43,31 @@ api:
   api_key: "changeme_api_key"
   public_url: ""  # Public base URL for recording download links (e.g. "https://bridge.smartgroup.es")
 
-# --- Webhooks (CTN notifications) ---
+# --- Webhooks (generic notifications) ---
 webhook:
   enabled: false
-  url: ""            # CTN webhook endpoint (e.g. "https://api.ctn.es/webhooks/calls")
+  url: ""            # Webhook endpoint (e.g. "https://api.example.com/webhooks/calls")
   api_key: ""        # Sent as X-API-Key header
   timeout_sec: 10
   retry_count: 3
+
+# --- CTN Integration (Consejo General del Notariado) ---
+# OAuth2 client_credentials + AVN Call Control API
+ctn:
+  enabled: false
+  base_url: "https://avn.notariado.org"
+  token_url: "https://int-sso.notariado.org/realms/saaa/protocol/openid-connect/token"
+  client_id: "smartgroup-api"
+  client_secret: ""  # Provided by CTN (avilchez)
+  timeout_sec: 10
+  retry_count: 3
+
+# --- TLS ---
+# If both cert_file and key_file are set, the API server uses HTTPS with TLS 1.3.
+# Leave empty to run plain HTTP (default).
+tls:
+  cert_file: ""  # e.g. "/etc/letsencrypt/live/bridge.smartgroup.es/fullchain.pem"
+  key_file: ""   # e.g. "/etc/letsencrypt/live/bridge.smartgroup.es/privkey.pem"
 
 # --- Database ---
 database:

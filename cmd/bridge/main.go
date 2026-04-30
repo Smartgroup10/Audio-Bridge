@@ -16,6 +16,7 @@ import (
 	"github.com/smartgroup/audio-bridge/internal/audiosocket"
 	"github.com/smartgroup/audio-bridge/internal/bridge"
 	"github.com/smartgroup/audio-bridge/internal/config"
+	"github.com/smartgroup/audio-bridge/internal/ctn"
 	"github.com/smartgroup/audio-bridge/internal/db"
 	"github.com/smartgroup/audio-bridge/internal/models"
 	"github.com/smartgroup/audio-bridge/internal/recording"
@@ -119,8 +120,18 @@ func main() {
 	// Create webhook client (nil if disabled)
 	webhookClient := webhook.NewClient(cfg.Webhook, logger.Named("webhook"))
 
+	// Create CTN client (nil if disabled)
+	var ctnClient *ctn.Client
+	if cfg.CTN.Enabled {
+		tokenProvider := ctn.NewTokenProvider(cfg.CTN, logger.Named("ctn-oauth"))
+		ctnClient = ctn.NewClient(tokenProvider, cfg.CTN, logger.Named("ctn"))
+		logger.Info("CTN integration enabled", zap.String("base_url", cfg.CTN.BaseURL))
+	} else {
+		logger.Info("CTN integration disabled")
+	}
+
 	// Create the bridge
-	b := bridge.New(cfg, tenants, calls, amiClient, database, sseHub, webhookClient, logger.Named("bridge"))
+	b := bridge.New(cfg, tenants, calls, amiClient, database, sseHub, webhookClient, ctnClient, logger.Named("bridge"))
 
 	// Handle OS signals
 	sigCh := make(chan os.Signal, 1)
@@ -146,7 +157,7 @@ func main() {
 	}()
 
 	// Start REST API server (with admin panel)
-	apiServer := api.NewServer(b, calls, database, tenants, sseHub, cfg, webhookClient, logger.Named("api"))
+	apiServer := api.NewServer(b, calls, database, tenants, sseHub, cfg, webhookClient, ctnClient, logger.Named("api"))
 	go func() {
 		if err := apiServer.Start(cfg.API.Addr); err != nil {
 			logger.Error("API server error", zap.Error(err))

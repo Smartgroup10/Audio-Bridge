@@ -140,7 +140,7 @@ func renderDialplan(t config.TenantConfig, apiKey string) string {
 		sb.WriteString(fmt.Sprintf(" same => n,GotoIf($[\"${ACTION}\" = \"direct\"]?direct_%s)\n", ddi))
 
 		// Default: send to AI
-		sb.WriteString(fmt.Sprintf(" same => n(ai_%s),Set(CALL_UUID=${SHELL(uuidgen)})\n", ddi))
+		sb.WriteString(fmt.Sprintf(" same => n(ai_%s),Set(CALL_UUID=${SHELL(uuidgen -r)})\n", ddi))
 		sb.WriteString(" same => n,Set(CALL_UUID=${FILTER(a-z0-9-,${CALL_UUID})})\n")
 		sb.WriteString(` same => n,Set(CURL_RESULT=${SHELL(curl -s -X POST http://${AB_HOST}/api/v1/calls/precreate -H "X-API-Key: ${AB_API_KEY}" -H "Content-Type: application/x-www-form-urlencoded" -d "uuid=${CALL_UUID}&notaria_id=${NOTARIA_ID}&caller_id=${CALLER}&ddi=${CALLEE}&channel=${CHANNEL}")})`)
 		sb.WriteString("\n")

@@ -13,6 +13,7 @@ import (
 	"github.com/smartgroup/audio-bridge/internal/ami"
 	"github.com/smartgroup/audio-bridge/internal/audiosocket"
 	"github.com/smartgroup/audio-bridge/internal/config"
+	"github.com/smartgroup/audio-bridge/internal/ctn"
 	"github.com/smartgroup/audio-bridge/internal/db"
 	"github.com/smartgroup/audio-bridge/internal/models"
 	"github.com/smartgroup/audio-bridge/internal/recording"
@@ -111,10 +112,11 @@ type Bridge struct {
 	db      *db.DB
 	sseHub  *models.SSEHub
 	webhook *webhook.Client
+	ctn     *ctn.Client
 	logger  *zap.Logger
 }
 
-func New(cfg *config.Config, tenants *config.TenantRegistry, calls *models.CallRegistry, amiClient *ami.Client, database *db.DB, sseHub *models.SSEHub, webhookClient *webhook.Client, logger *zap.Logger) *Bridge {
+func New(cfg *config.Config, tenants *config.TenantRegistry, calls *models.CallRegistry, amiClient *ami.Client, database *db.DB, sseHub *models.SSEHub, webhookClient *webhook.Client, ctnClient *ctn.Client, logger *zap.Logger) *Bridge {
 	return &Bridge{
 		cfg:     cfg,
 		tenants: tenants,
@@ -123,6 +125,7 @@ func New(cfg *config.Config, tenants *config.TenantRegistry, calls *models.CallR
 		db:      database,
 		sseHub:  sseHub,
 		webhook: webhookClient,
+		ctn:     ctnClient,
 		logger:  logger,
 	}
 }
@@ -269,9 +272,25 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 			"caller_id":  call.CallerID,
 			"notaria_id": call.NotariaID,
 			"direction":  call.Direction,
-			"start_time": call.StartTime.Format(time.RFC3339),
+			"start_time": call.StartTime.UnixMilli(),
 		},
 	})
+
+	// CTN: notify call-started (async, non-blocking)
+	if b.ctn != nil {
+		go func() {
+			if err := b.ctn.CallStarted(
+				callID,
+				call.NotariaID,
+				string(call.Direction),
+				call.StartTime.UnixMilli(),
+				call.CallerID,
+				call.DDI,
+			); err != nil {
+				logger.Warn("CTN call-started notification failed", zap.Error(err))
+			}
+		}()
+	}
 
 	// Recording setup
 	var rec *recording.Recorder
@@ -694,8 +713,15 @@ func (b *Bridge) postCallProcessing(call *models.Call) {
 			TransferDest:  call.TransferDest,
 			RecordingURL:  recordingURL,
 			Schedule:      call.Schedule,
-			Timestamp:     time.Now().UTC().Format(time.RFC3339),
+			Timestamp:     time.Now().UnixMilli(),
 		})
+	}
+
+	// 3. CTN: notify call-ended
+	if b.ctn != nil {
+		if err := b.ctn.CallEnded(call.ID, call.NotariaID, time.Now().UnixMilli()); err != nil {
+			logger.Warn("CTN call-ended notification failed", zap.Error(err))
+		}
 	}
 }
 

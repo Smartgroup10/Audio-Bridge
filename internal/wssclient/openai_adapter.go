@@ -2,6 +2,7 @@ package wssclient
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -291,6 +292,7 @@ func (c *OpenAIRealtimeClient) connectInternal(ctx context.Context) error {
 
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:  &tls.Config{MinVersion: tls.VersionTLS13},
 	}
 
 	c.logger.Info("Connecting to OpenAI Realtime API",

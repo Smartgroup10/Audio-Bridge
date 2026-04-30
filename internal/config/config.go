@@ -24,6 +24,8 @@ type Config struct {
 	Admin      AdminConfig      `yaml:"admin"`
 	Backoffice BackofficeConfig `yaml:"backoffice"`
 	Webhook    WebhookConfig    `yaml:"webhook"`
+	CTN        CTNConfig        `yaml:"ctn"`
+	TLS        TLSConfig        `yaml:"tls"`
 	Tenants    []TenantConfig   `yaml:"tenants"`
 }
 
@@ -102,6 +104,23 @@ type BackofficeConfig struct {
 	APIKey   string `yaml:"api_key"`   // Authentication key
 	CacheTTL int    `yaml:"cache_ttl"` // Cache TTL in seconds (default 300)
 	Enabled  bool   `yaml:"enabled"`   // Enable backoffice tenant lookup
+}
+
+// CTNConfig holds configuration for the CTN (Consejo General del Notariado) integration
+type CTNConfig struct {
+	BaseURL      string `yaml:"base_url"`      // CTN API base URL (e.g. "https://avn.notariado.org")
+	TokenURL     string `yaml:"token_url"`      // KeyCloak token endpoint
+	ClientID     string `yaml:"client_id"`      // OAuth2 client ID
+	ClientSecret string `yaml:"client_secret"`  // OAuth2 client secret
+	TimeoutSec   int    `yaml:"timeout_sec"`    // HTTP request timeout (default 10)
+	RetryCount   int    `yaml:"retry_count"`    // Max retry attempts (default 3)
+	Enabled      bool   `yaml:"enabled"`        // Enable CTN integration
+}
+
+// TLSConfig holds TLS certificate configuration
+type TLSConfig struct {
+	CertFile string `yaml:"cert_file"` // Path to TLS certificate file
+	KeyFile  string `yaml:"key_file"`  // Path to TLS private key file
 }
 
 // TenantConfig represents a single notary's configuration
@@ -311,14 +330,35 @@ func (r *TenantRegistry) Remove(id string) {
 	}
 }
 
-// IsVIP checks if a caller ID is in the tenant's VIP whitelist
+// IsVIP checks if a caller ID is in the tenant's VIP whitelist.
+// Both sides are normalized to E.164 for consistent matching.
 func (t *TenantConfig) IsVIP(callerID string) bool {
+	normalized := normalizeForCompare(callerID)
 	for _, vip := range t.VIPWhitelist {
-		if vip == callerID {
+		if normalizeForCompare(vip) == normalized {
 			return true
 		}
 	}
 	return false
+}
+
+// normalizeForCompare strips non-digit chars and leading country prefix for phone comparison.
+func normalizeForCompare(number string) string {
+	var digits strings.Builder
+	for _, r := range number {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	s := digits.String()
+	// Strip leading 00 or 34 prefix to compare national numbers
+	if strings.HasPrefix(s, "00") {
+		s = s[2:]
+	}
+	if strings.HasPrefix(s, "34") && len(s) == 11 {
+		s = s[2:]
+	}
+	return s
 }
 
 // IsBusinessHours checks if the current time is within business hours for the tenant
@@ -447,6 +487,12 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Webhook.RetryCount == 0 {
 		cfg.Webhook.RetryCount = 3
+	}
+	if cfg.CTN.TimeoutSec == 0 {
+		cfg.CTN.TimeoutSec = 10
+	}
+	if cfg.CTN.RetryCount == 0 {
+		cfg.CTN.RetryCount = 3
 	}
 	return &cfg, nil
 }

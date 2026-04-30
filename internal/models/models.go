@@ -138,7 +138,7 @@ type CallStatusResponse struct {
 	Direction       string    `json:"direction"`
 	CallerID        string    `json:"caller_id"`
 	NotariaID       string    `json:"notaria_id"`
-	StartTime       string    `json:"start_time"`
+	StartTime       int64     `json:"start_time"`
 	DurationSeconds float64   `json:"duration_seconds"`
 	EndReason       string    `json:"end_reason,omitempty"`
 }

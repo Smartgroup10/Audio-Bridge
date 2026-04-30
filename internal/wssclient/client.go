@@ -2,6 +2,7 @@ package wssclient
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -79,9 +80,10 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 		headers.Set("Authorization", "Bearer "+c.aiCfg.BearerToken)
 	}
 
-	// Dial with timeout
+	// Dial with timeout and TLS 1.3 minimum
 	dialer := websocket.Dialer{
 		HandshakeTimeout: time.Duration(c.aiCfg.TimeoutSec) * time.Second,
+		TLSClientConfig:  &tls.Config{MinVersion: tls.VersionTLS13},
 	}
 
 	c.logger.Info("Connecting to AI module",
