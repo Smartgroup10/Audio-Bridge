@@ -12,8 +12,9 @@ const (
 	CallStateRinging   CallState = "ringing"
 	CallStateConnected CallState = "connected"
 	CallStateStreaming  CallState = "streaming"
-	CallStateTransfer  CallState = "transferring"
-	CallStateCompleted CallState = "completed"
+	CallStateTransfer        CallState = "transferring"
+	CallStateTransferPending CallState = "transfer_pending"
+	CallStateCompleted       CallState = "completed"
 	CallStateFailed    CallState = "failed"
 )
 
@@ -32,7 +33,7 @@ type Call struct {
 	AsteriskChannel string            `json:"asterisk_channel"`
 	CallerID        string            `json:"caller_id"`
 	DDI             string            `json:"ddi"`
-	NotariaID       string            `json:"notaria_id"`
+	SiteID          string            `json:"site_id"`
 	Direction       CallDirection     `json:"direction"`
 	State           CallState         `json:"state"`
 	Schedule        string            `json:"schedule"`
@@ -44,7 +45,9 @@ type Call struct {
 	EndTime         *time.Time        `json:"end_time,omitempty"`
 	Duration        float64           `json:"duration_seconds"`
 	EndReason       string            `json:"end_reason"`
-	TransferDest    string            `json:"transfer_dest,omitempty"`
+	TransferDest     string `json:"transfer_dest,omitempty"`
+	TransferAttempts int    `json:"transfer_attempts"`
+	TransferContext  string `json:"transfer_context,omitempty"` // set to "transfer_not_answered" on reconnection after failed transfer
 	RecordingCaller   string            `json:"recording_caller,omitempty"`
 	RecordingAI       string            `json:"recording_ai,omitempty"`
 	RecordingCallerMP3 string           `json:"recording_caller_mp3,omitempty"`
@@ -101,7 +104,7 @@ type AIEvent struct {
 	Event           string            `json:"event"`
 	Destination     string            `json:"destination,omitempty"`
 	DestinationType string            `json:"destination_type,omitempty"`
-	NotariaID       string            `json:"notaria_id,omitempty"`
+	SiteID          string            `json:"site_id,omitempty"`
 	Via             string            `json:"via,omitempty"`
 	Announce        string            `json:"announce,omitempty"`
 	Reason          string            `json:"reason,omitempty"`
@@ -116,7 +119,7 @@ type AIEvent struct {
 // OutboundRequest represents an API request to originate an outbound call
 type OutboundRequest struct {
 	Destination          string            `json:"destination" binding:"required"`
-	NotariaID            string            `json:"notaria_id" binding:"required"`
+	SiteID               string            `json:"site_id" binding:"required"`
 	CallType             string            `json:"call_type"`
 	ContextID            string            `json:"context_id"`
 	ContextData          map[string]string `json:"context_data"`
@@ -137,7 +140,7 @@ type CallStatusResponse struct {
 	State           CallState `json:"state"`
 	Direction       string    `json:"direction"`
 	CallerID        string    `json:"caller_id"`
-	NotariaID       string    `json:"notaria_id"`
+	SiteID          string    `json:"site_id"`
 	StartTime       int64     `json:"start_time"`
 	DurationSeconds float64   `json:"duration_seconds"`
 	EndReason       string    `json:"end_reason,omitempty"`

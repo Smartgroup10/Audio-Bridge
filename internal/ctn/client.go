@@ -47,6 +47,13 @@ type CallEndedRequest struct {
 	Timestamp int64  `json:"timestamp"` // epoch ms
 }
 
+// TransferNotAnsweredRequest is the body for POST /transferred-call-not-answered
+type TransferNotAnsweredRequest struct {
+	SiteID      string `json:"siteId"`
+	Destination string `json:"destination"` // extension/number that did not answer
+	Timestamp   int64  `json:"timestamp"`   // epoch ms
+}
+
 // Client calls the CTN AVN Call Control API
 type Client struct {
 	token      *TokenProvider
@@ -143,6 +150,31 @@ func (c *Client) CallEnded(callID, siteID string, timestamp int64) error {
 	c.logger.Info("CTN call-ended sent",
 		zap.String("call_id", callID),
 		zap.String("site_id", siteID))
+
+	return nil
+}
+
+// TransferredCallNotAnswered notifies CTN that a transferred call was not answered
+func (c *Client) TransferredCallNotAnswered(callID, siteID, destination string, timestamp int64) error {
+	if c == nil {
+		return nil
+	}
+
+	url := fmt.Sprintf("%s/avn-call-control/api/v1/private/transferred-call-not-answered?callId=%s", c.baseURL, callID)
+	body := TransferNotAnsweredRequest{
+		SiteID:      siteID,
+		Destination: destination,
+		Timestamp:   timestamp,
+	}
+
+	if err := c.doWithRetry("POST", url, body, nil); err != nil {
+		return fmt.Errorf("CTN transferred-call-not-answered: %w", err)
+	}
+
+	c.logger.Info("CTN transferred-call-not-answered sent",
+		zap.String("call_id", callID),
+		zap.String("site_id", siteID),
+		zap.String("destination", destination))
 
 	return nil
 }

@@ -22,7 +22,7 @@ const (
 type Payload struct {
 	Event         string  `json:"event"`
 	InteractionID string  `json:"interaction_id"`
-	NotariaID     string  `json:"notaria_id"`
+	SiteID     string  `json:"site_id"`
 	CallerID      string  `json:"caller_id"`
 	DDI           string  `json:"ddi"`
 	Direction     string  `json:"direction"`

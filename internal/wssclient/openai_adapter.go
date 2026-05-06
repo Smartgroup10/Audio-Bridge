@@ -371,7 +371,7 @@ func (c *OpenAIRealtimeClient) connectInternal(ctx context.Context) error {
 	c.logger.Info("OpenAI session configured",
 		zap.String("voice", c.oaiCfg.Voice),
 		zap.String("audio_format", "audio/pcmu"),
-		zap.String("notaria_id", c.connectParams.NotariaID))
+		zap.String("site_id", c.connectParams.SiteID))
 
 	// Start read loop
 	go c.readLoop(ctx)
@@ -689,7 +689,7 @@ func (c *OpenAIRealtimeClient) handleFunctionCall(msg []byte) {
 				Event:           "transfer",
 				Destination:     argsMap["destination"],
 				DestinationType: argsMap["destination_type"],
-				NotariaID:       argsMap["notaria_id"],
+				SiteID:       argsMap["site_id"],
 				Via:             "sip_trunk",
 			}:
 			default:
@@ -732,13 +732,23 @@ func buildDefaultInstructions(params ConnectParams, language string) string {
 		lang = language
 	}
 
+	transferContext := ""
+	if params.CallState == "transfer_not_answered" {
+		transferContext = fmt.Sprintf(`
+TRANSFER CONTEXT:
+- The caller was previously transferred to extension/number but nobody answered (attempt %d)
+- Apologize for the wait and explain that the person was not available
+- Offer alternatives: try again later, leave a message, transfer to a different person, or help directly
+- Do NOT immediately try to transfer again to the same destination unless the caller explicitly asks`, params.TransferAttempt)
+	}
+
 	return fmt.Sprintf(`You are a professional virtual assistant for a Spanish notary office.
 
 CONTEXT:
-- Notaria ID: %s
+- Site ID: %s
 - Caller phone: %s
 - Call type: %s
-- Schedule: %s
+- Schedule: %s%s
 
 BEHAVIOR:
 - Always speak in %s
@@ -751,7 +761,7 @@ BEHAVIOR:
 IMPORTANT:
 - Keep responses short (1-3 sentences) since this is a phone call
 - Speak naturally as in a phone conversation
-- Start by greeting and asking how you can help`, params.NotariaID, params.CallerID, params.CallType, params.Schedule, lang)
+- Start by greeting and asking how you can help`, params.SiteID, params.CallerID, params.CallType, params.Schedule, transferContext, lang)
 }
 
 func buildTransferTools() []OAITool {
@@ -767,9 +777,9 @@ func buildTransferTools() []OAITool {
 				"enum":        []string{"extension", "number", "group"},
 				"description": "Type of destination",
 			},
-			"notaria_id": map[string]interface{}{
+			"site_id": map[string]interface{}{
 				"type":        "string",
-				"description": "ID of the notaria to transfer to",
+				"description": "ID of the site to transfer to",
 			},
 			"reason": map[string]interface{}{
 				"type":        "string",

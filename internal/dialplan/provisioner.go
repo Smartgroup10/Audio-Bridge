@@ -51,7 +51,7 @@ func (p *Provisioner) Provision(tenant config.TenantConfig, apiKey string, amiCl
 	if len(tenant.DDIs) == 0 {
 		p.logger.Warn("Tenant has company_id but no DDIs — dialplan will only have fallback",
 			zap.String("company_id", tenant.CompanyID),
-			zap.String("notaria_id", tenant.NotariaID))
+			zap.String("site_id", tenant.SiteID))
 	}
 
 	content := renderDialplan(tenant, apiKey)
@@ -114,14 +114,14 @@ func renderDialplan(t config.TenantConfig, apiKey string) string {
 	sb.WriteString("; =============================================================================\n\n")
 
 	sb.WriteString(fmt.Sprintf("[sub_custom_%s_pstn_in]\n", t.CompanyID))
-	sb.WriteString(fmt.Sprintf("; Audio Bridge IA para notaria %s (%s)\n", t.NotariaID, t.Name))
+	sb.WriteString(fmt.Sprintf("; Audio Bridge IA para site %s (%s)\n", t.SiteID, t.Name))
 	sb.WriteString("; Variables PekePBX: ${CALLER}, ${CALLEE}, ${DST_COMPANY}\n")
 	sb.WriteString("; Routing: consulta al bridge antes de decidir AI/VIP/closed/direct\n\n")
 
 	// One exten block per DDI
 	for _, ddi := range t.DDIs {
 		sb.WriteString(fmt.Sprintf("exten => %s,1,NoOp(=== Audio Bridge IA - Tenant ${DST_COMPANY} DDI %s ===)\n", ddi, ddi))
-		sb.WriteString(fmt.Sprintf(" same => n,Set(NOTARIA_ID=%s)\n", t.NotariaID))
+		sb.WriteString(fmt.Sprintf(" same => n,Set(SITE_ID=%s)\n", t.SiteID))
 		sb.WriteString(fmt.Sprintf(" same => n,Set(AB_API_KEY=%s)\n", apiKey))
 		sb.WriteString(" same => n,Set(AB_HOST=127.0.0.1:8080)\n")
 		sb.WriteString(" same => n,Set(AB_SOCKET=127.0.0.1:9092)\n")
@@ -142,7 +142,7 @@ func renderDialplan(t config.TenantConfig, apiKey string) string {
 		// Default: send to AI
 		sb.WriteString(fmt.Sprintf(" same => n(ai_%s),Set(CALL_UUID=${SHELL(uuidgen -r)})\n", ddi))
 		sb.WriteString(" same => n,Set(CALL_UUID=${FILTER(a-z0-9-,${CALL_UUID})})\n")
-		sb.WriteString(` same => n,Set(CURL_RESULT=${SHELL(curl -s -X POST http://${AB_HOST}/api/v1/calls/precreate -H "X-API-Key: ${AB_API_KEY}" -H "Content-Type: application/x-www-form-urlencoded" -d "uuid=${CALL_UUID}&notaria_id=${NOTARIA_ID}&caller_id=${CALLER}&ddi=${CALLEE}&channel=${CHANNEL}")})`)
+		sb.WriteString(` same => n,Set(CURL_RESULT=${SHELL(curl -s -X POST http://${AB_HOST}/api/v1/calls/precreate -H "X-API-Key: ${AB_API_KEY}" -H "Content-Type: application/x-www-form-urlencoded" -d "uuid=${CALL_UUID}&notaria_id=${SITE_ID}&caller_id=${CALLER}&ddi=${CALLEE}&channel=${CHANNEL}")})`)
 		sb.WriteString("\n")
 		sb.WriteString(" same => n,NoOp(Precreate result: ${CURL_RESULT})\n")
 		sb.WriteString(" same => n,AudioSocket(${CALL_UUID},${AB_SOCKET})\n")

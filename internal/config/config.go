@@ -125,7 +125,7 @@ type TLSConfig struct {
 
 // TenantConfig represents a single notary's configuration
 type TenantConfig struct {
-	NotariaID    string         `yaml:"notaria_id" json:"notaria_id"`
+	SiteID       string         `yaml:"site_id" json:"site_id"`
 	CompanyID    string         `yaml:"company_id" json:"company_id"`     // PekePBX company ID (e.g. "20242") — triggers dialplan auto-provisioning
 	Name         string         `yaml:"name" json:"name"`
 	DDIs         []string       `yaml:"ddis" json:"ddis"`
@@ -158,7 +158,7 @@ type TransferConfig struct {
 
 // TenantConfigJSON is used for DB storage (DDIs and config as JSON)
 type TenantConfigJSON struct {
-	NotariaID string `json:"notaria_id"`
+	SiteID    string `json:"site_id"`
 	CompanyID string `json:"company_id"`
 	Name      string `json:"name"`
 	DDIs      string `json:"ddis"`     // JSON array
@@ -180,7 +180,7 @@ func (t *TenantConfig) ToJSON() TenantConfigJSON {
 	}
 	configJSON, _ := json.Marshal(configMap)
 	return TenantConfigJSON{
-		NotariaID: t.NotariaID,
+		SiteID: t.SiteID,
 		CompanyID: t.CompanyID,
 		Name:      t.Name,
 		DDIs:      string(ddisJSON),
@@ -193,7 +193,7 @@ func (t *TenantConfig) ToJSON() TenantConfigJSON {
 // FromJSON converts JSON storage format to TenantConfig
 func TenantFromJSON(j TenantConfigJSON) TenantConfig {
 	t := TenantConfig{
-		NotariaID: j.NotariaID,
+		SiteID: j.SiteID,
 		CompanyID: j.CompanyID,
 		Name:      j.Name,
 		Enabled:   j.Enabled,
@@ -243,7 +243,7 @@ func NewTenantRegistry(tenants []TenantConfig) *TenantRegistry {
 		if !t.Enabled {
 			continue
 		}
-		r.byID[t.NotariaID] = t
+		r.byID[t.SiteID] = t
 		for _, ddi := range t.DDIs {
 			r.byDDI[ddi] = t
 		}
@@ -279,7 +279,7 @@ func (r *TenantRegistry) Add(t TenantConfig) {
 	tc := &t
 	r.all = append(r.all, tc)
 	if tc.Enabled {
-		r.byID[tc.NotariaID] = tc
+		r.byID[tc.SiteID] = tc
 		for _, ddi := range tc.DDIs {
 			r.byDDI[ddi] = tc
 		}
@@ -290,16 +290,16 @@ func (r *TenantRegistry) Update(t TenantConfig) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	// Remove old DDI mappings
-	if old, ok := r.byID[t.NotariaID]; ok {
+	if old, ok := r.byID[t.SiteID]; ok {
 		for _, ddi := range old.DDIs {
 			delete(r.byDDI, ddi)
 		}
 	}
 	// Update in-place
 	tc := &t
-	r.byID[t.NotariaID] = tc
+	r.byID[t.SiteID] = tc
 	for i, existing := range r.all {
-		if existing.NotariaID == t.NotariaID {
+		if existing.SiteID == t.SiteID {
 			r.all[i] = tc
 			break
 		}
@@ -309,7 +309,7 @@ func (r *TenantRegistry) Update(t TenantConfig) {
 			r.byDDI[ddi] = tc
 		}
 	} else {
-		delete(r.byID, t.NotariaID)
+		delete(r.byID, t.SiteID)
 	}
 }
 
@@ -323,7 +323,7 @@ func (r *TenantRegistry) Remove(id string) {
 		delete(r.byID, id)
 	}
 	for i, t := range r.all {
-		if t.NotariaID == id {
+		if t.SiteID == id {
 			r.all = append(r.all[:i], r.all[i+1:]...)
 			break
 		}

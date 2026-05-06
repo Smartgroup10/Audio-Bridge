@@ -152,6 +152,9 @@ func (b *Bridge) Calls() *models.CallRegistry {
 
 // TransferCall transfers an active call to a destination via AMI.
 // Can be called from processAIMessages (AI-initiated) or from the HTTP API (Lakimi-initiated).
+// Uses managed transfer: the call is redirected to a dialplan context that handles
+// the Dial() with timeout. If nobody answers, Asterisk sends the call back to the
+// AudioSocket and the bridge reconnects the AI with "transfer_not_answered" context.
 func (b *Bridge) TransferCall(callID, destination, destType string) error {
 	call, ok := b.calls.Get(callID)
 	if !ok {
@@ -186,17 +189,21 @@ func (b *Bridge) TransferCall(callID, destination, destType string) error {
 		return fmt.Errorf("call %s has no Asterisk channel", callID)
 	}
 
-	transferCtx := "from-users"
-	if err := b.ami.Transfer(call.AsteriskChannel, destination, transferCtx); err != nil {
-		b.logger.Error("Transfer failed",
+	// Use managed transfer: sets channel vars and redirects to a dialplan context
+	// that does Dial() with timeout. If not answered, Asterisk returns the call
+	// to the AudioSocket and HandleAudioSocket detects the reconnection.
+	if err := b.ami.TransferManaged(call.AsteriskChannel, destination, b.cfg.Server.AudioSocketAddr, callID); err != nil {
+		b.logger.Error("Managed transfer failed",
 			zap.String("call_id", callID),
 			zap.String("destination", destination),
 			zap.Error(err))
-		return fmt.Errorf("AMI transfer failed: %w", err)
+		return fmt.Errorf("AMI managed transfer failed: %w", err)
 	}
 
-	call.Complete("transfer")
-	b.logger.Info("Call transferred",
+	// Do NOT complete the call — set to transfer_pending so the bridge can
+	// detect a reconnection if the transfer is not answered.
+	call.SetState(models.CallStateTransferPending)
+	b.logger.Info("Call transfer pending (managed)",
 		zap.String("call_id", callID),
 		zap.String("destination", destination))
 	return nil
@@ -248,7 +255,50 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 	}
 
 	call, exists := b.calls.Get(callID)
-	if !exists {
+	isTransferRetry := false
+	if exists && call.GetState() == models.CallStateTransferPending {
+		// Reconnection after a transfer that was not answered.
+		// The dialplan returned the call to AudioSocket because nobody picked up.
+		isTransferRetry = true
+		call.TransferAttempts++
+		call.TransferContext = "transfer_not_answered"
+		call.SetState(models.CallStateStreaming)
+
+		logger.Info("Transfer not answered — reconnecting to AI",
+			zap.String("site_id", call.SiteID),
+			zap.String("transfer_dest", call.TransferDest),
+			zap.Int("attempt", call.TransferAttempts))
+
+		// Notify CTN asynchronously
+		if b.ctn != nil {
+			go func() {
+				if err := b.ctn.TransferredCallNotAnswered(
+					callID, call.SiteID, call.TransferDest, time.Now().UnixMilli(),
+				); err != nil {
+					logger.Warn("CTN transferred-call-not-answered notification failed", zap.Error(err))
+				}
+			}()
+		}
+
+		// Log + SSE
+		if b.db != nil {
+			b.db.InsertLog(db.InteractionLog{
+				CallID:    callID,
+				Timestamp: time.Now().Format(time.RFC3339),
+				Direction: "system",
+				Content:   fmt.Sprintf("Transfer to %s not answered (attempt %d)", call.TransferDest, call.TransferAttempts),
+				EventType: "transfer_not_answered",
+			})
+		}
+		b.sseHub.Broadcast(models.SSEEvent{
+			Type: "transfer_not_answered",
+			Data: map[string]interface{}{
+				"call_id":     callID,
+				"destination": call.TransferDest,
+				"attempt":     call.TransferAttempts,
+			},
+		})
+	} else if !exists {
 		call = &models.Call{
 			ID:        callID,
 			Direction: models.CallInbound,
@@ -260,9 +310,13 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 	}
 
 	now := time.Now()
-	call.AnswerTime = &now
+	if !isTransferRetry {
+		call.AnswerTime = &now
+	}
 	call.SetState(models.CallStateStreaming)
-	logger.Info("Call streaming started", zap.String("notaria_id", call.NotariaID))
+	logger.Info("Call streaming started",
+		zap.String("site_id", call.SiteID),
+		zap.Bool("transfer_retry", isTransferRetry))
 
 	// SSE: broadcast call_started
 	b.sseHub.Broadcast(models.SSEEvent{
@@ -270,7 +324,7 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 		Data: map[string]interface{}{
 			"call_id":    callID,
 			"caller_id":  call.CallerID,
-			"notaria_id": call.NotariaID,
+			"site_id": call.SiteID,
 			"direction":  call.Direction,
 			"start_time": call.StartTime.UnixMilli(),
 		},
@@ -281,7 +335,7 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 		go func() {
 			if err := b.ctn.CallStarted(
 				callID,
-				call.NotariaID,
+				call.SiteID,
 				string(call.Direction),
 				call.StartTime.UnixMilli(),
 				call.CallerID,
@@ -340,23 +394,25 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 	schedule := "business_hours"
 	call.Schedule = schedule
 
-	tenant, hasTenant := b.tenants.LookupByID(call.NotariaID)
+	tenant, hasTenant := b.tenants.LookupByID(call.SiteID)
 	if !hasTenant && call.DDI != "" {
 		tenant, hasTenant = b.tenants.LookupByDDI(call.DDI)
 		if hasTenant {
-			call.NotariaID = tenant.NotariaID
+			call.SiteID = tenant.SiteID
 		}
 	}
 
 	connectParams := wssclient.ConnectParams{
-		NotariaID:     call.NotariaID,
-		CallerID:      call.CallerID,
-		InteractionID: callID,
-		CallType:      call.CallType,
-		Schedule:      schedule,
-		DDIOrigin:     call.DDI,
-		ContextID:     call.ContextID,
-		ContextData:   call.ContextData,
+		SiteID:       call.SiteID,
+		CallerID:        call.CallerID,
+		InteractionID:   callID,
+		CallType:        call.CallType,
+		Schedule:        schedule,
+		DDIOrigin:       call.DDI,
+		ContextID:       call.ContextID,
+		ContextData:     call.ContextData,
+		CallState:       call.TransferContext,
+		TransferAttempt: call.TransferAttempts,
 	}
 
 	var aiClient wssclient.AIClient
@@ -636,7 +692,7 @@ func (b *Bridge) persistCall(call *models.Call) {
 		ID:              call.ID,
 		CallerID:        call.CallerID,
 		DDI:             call.DDI,
-		NotariaID:       call.NotariaID,
+		SiteID:       call.SiteID,
 		Direction:       string(call.Direction),
 		State:           string(call.GetState()),
 		CallType:        call.CallType,
@@ -677,7 +733,7 @@ func (b *Bridge) postCallProcessing(call *models.Call) {
 	if call.RecordingCaller != "" || call.RecordingAI != "" {
 		mp3Paths, err := recording.ConvertCallRecordings(
 			call.RecordingCaller, call.RecordingAI,
-			call.NotariaID, call.CallerID, call.ID,
+			call.SiteID, call.CallerID, call.ID,
 			logger.Named("mp3"),
 		)
 		if err != nil {
@@ -704,7 +760,7 @@ func (b *Bridge) postCallProcessing(call *models.Call) {
 		b.webhook.Send(webhook.Payload{
 			Event:         webhook.EventCallCompleted,
 			InteractionID: call.ID,
-			NotariaID:     call.NotariaID,
+			SiteID:     call.SiteID,
 			CallerID:      call.CallerID,
 			DDI:           call.DDI,
 			Direction:     string(call.Direction),
@@ -719,7 +775,7 @@ func (b *Bridge) postCallProcessing(call *models.Call) {
 
 	// 3. CTN: notify call-ended
 	if b.ctn != nil {
-		if err := b.ctn.CallEnded(call.ID, call.NotariaID, time.Now().UnixMilli()); err != nil {
+		if err := b.ctn.CallEnded(call.ID, call.SiteID, time.Now().UnixMilli()); err != nil {
 			logger.Warn("CTN call-ended notification failed", zap.Error(err))
 		}
 	}
@@ -735,14 +791,14 @@ func (b *Bridge) fallbackTransfer(call *models.Call, tenant *config.TenantConfig
 
 	dest := tenant.Transfers.Default
 	if dest == "" {
-		logger.Warn("No default transfer destination for tenant", zap.String("notaria_id", tenant.NotariaID))
+		logger.Warn("No default transfer destination for tenant", zap.String("site_id", tenant.SiteID))
 		call.Complete("error_no_fallback")
 		return
 	}
 
 	logger.Info("Executing fallback transfer to notary",
 		zap.String("destination", dest),
-		zap.String("notaria_id", tenant.NotariaID))
+		zap.String("site_id", tenant.SiteID))
 
 	if err := b.ami.Transfer(call.AsteriskChannel, dest, "from-internal"); err != nil {
 		logger.Error("Fallback transfer failed", zap.Error(err))
@@ -759,7 +815,7 @@ func (b *Bridge) OriginateOutbound(req models.OutboundRequest) (*models.Call, er
 	call := &models.Call{
 		ID:          callID,
 		CallerID:    req.Destination,
-		NotariaID:   req.NotariaID,
+		SiteID:   req.SiteID,
 		Direction:   models.CallOutbound,
 		State:       models.CallStateRinging,
 		CallType:    req.CallType,
@@ -773,18 +829,18 @@ func (b *Bridge) OriginateOutbound(req models.OutboundRequest) (*models.Call, er
 	b.calls.Add(call)
 
 	variables := map[string]string{
-		"NOTARIA_ID": req.NotariaID,
+		"SITE_ID":    req.SiteID,
 		"CALL_TYPE":  call.CallType,
 		"CONTEXT_ID": req.ContextID,
 		"CALL_UUID":  callID,
 	}
 
 	bridgeAddr := b.cfg.Server.AudioSocketAddr
-	callerID := fmt.Sprintf("Notaria <%s>", req.NotariaID)
+	callerID := fmt.Sprintf("Site <%s>", req.SiteID)
 
 	// Use trunk from tenant config if available
 	sipTrunk := ""
-	if tenant, ok := b.tenants.LookupByID(req.NotariaID); ok {
+	if tenant, ok := b.tenants.LookupByID(req.SiteID); ok {
 		sipTrunk = tenant.SIPTrunk
 	}
 
@@ -800,7 +856,7 @@ func (b *Bridge) OriginateOutbound(req models.OutboundRequest) (*models.Call, er
 	b.logger.Info("Outbound call originated",
 		zap.String("call_id", callID),
 		zap.String("destination", req.Destination),
-		zap.String("notaria_id", req.NotariaID))
+		zap.String("site_id", req.SiteID))
 
 	return call, nil
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,14 +30,16 @@ type Client struct {
 
 // ConnectParams holds the metadata sent in the WSS handshake
 type ConnectParams struct {
-	NotariaID     string
-	CallerID      string
-	InteractionID string
-	CallType      string // "inbound", "callback"
-	Schedule      string // "business_hours", "after_hours"
-	DDIOrigin     string
-	ContextID     string
-	ContextData   map[string]string
+	SiteID       string
+	CallerID        string
+	InteractionID   string
+	CallType        string // "inbound", "callback"
+	Schedule        string // "business_hours", "after_hours"
+	DDIOrigin       string
+	ContextID       string
+	ContextData     map[string]string
+	CallState       string // "", "transfer_not_answered"
+	TransferAttempt int    // 0 = first time, 1+ = retry after failed transfer
 }
 
 // NewClient creates a new WSS client (not yet connected)
@@ -57,7 +60,7 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 	}
 
 	q := u.Query()
-	q.Set("notaria_id", params.NotariaID)
+	q.Set("site_id", params.SiteID)
 	q.Set("caller_id", params.CallerID)
 	q.Set("interaction_id", params.InteractionID)
 	q.Set("call_type", params.CallType)
@@ -68,6 +71,12 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 	}
 	for k, v := range params.ContextData {
 		q.Set("ctx_"+k, v)
+	}
+	if params.CallState != "" {
+		q.Set("call_state", params.CallState)
+	}
+	if params.TransferAttempt > 0 {
+		q.Set("transfer_attempt", strconv.Itoa(params.TransferAttempt))
 	}
 	u.RawQuery = q.Encode()
 

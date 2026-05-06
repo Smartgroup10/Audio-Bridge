@@ -261,7 +261,7 @@ func (s *Server) healthCheck(c *gin.Context) {
 func (s *Server) precreateCall(c *gin.Context) {
 	var req struct {
 		UUID      string `json:"uuid" form:"uuid" binding:"required"`
-		NotariaID string `json:"notaria_id" form:"notaria_id" binding:"required"`
+		SiteID    string `json:"site_id" form:"site_id" binding:"required"`
 		CallerID  string `json:"caller_id" form:"caller_id"`
 		DDI       string `json:"ddi" form:"ddi"`
 		Channel   string `json:"channel" form:"channel"`
@@ -281,7 +281,7 @@ func (s *Server) precreateCall(c *gin.Context) {
 		ID:              req.UUID,
 		CallerID:        phone.NormalizeE164(req.CallerID),
 		DDI:             req.DDI,
-		NotariaID:       req.NotariaID,
+		SiteID:          req.SiteID,
 		Direction:       dir,
 		State:           models.CallStateRinging,
 		CallType:        "inbound",
@@ -292,7 +292,7 @@ func (s *Server) precreateCall(c *gin.Context) {
 
 	s.logger.Info("Call precreated",
 		zap.String("uuid", req.UUID),
-		zap.String("notaria_id", req.NotariaID),
+		zap.String("site_id", req.SiteID),
 		zap.String("caller_id", req.CallerID),
 		zap.String("ddi", req.DDI))
 
@@ -337,7 +337,7 @@ func (s *Server) getCallStatus(c *gin.Context) {
 		State:           call.GetState(),
 		Direction:       string(call.Direction),
 		CallerID:        call.CallerID,
-		NotariaID:       call.NotariaID,
+		SiteID:       call.SiteID,
 		StartTime:       call.StartTime.UnixMilli(),
 		DurationSeconds: call.Duration,
 		EndReason:       call.EndReason,
@@ -354,7 +354,7 @@ func (s *Server) listActiveCalls(c *gin.Context) {
 				State:     call.GetState(),
 				Direction: string(call.Direction),
 				CallerID:  call.CallerID,
-				NotariaID: call.NotariaID,
+				SiteID: call.SiteID,
 				StartTime: call.StartTime.UnixMilli(),
 			})
 		}
@@ -398,7 +398,7 @@ func (s *Server) getStats(c *gin.Context) {
 
 // checkRouting determines routing action for an incoming call.
 // Returns pipe-separated text for easy Asterisk dialplan parsing:
-// action|notaria_id|transfer_dest|schedule
+// action|site_id|transfer_dest|schedule
 // Actions: "ai" (send to AI), "vip" (VIP direct), "closed" (after hours), "direct" (bypass)
 func (s *Server) checkRouting(c *gin.Context) {
 	ddi := c.Query("ddi")
@@ -418,13 +418,13 @@ func (s *Server) checkRouting(c *gin.Context) {
 		return
 	}
 
-	notariaID := tenant.NotariaID
+	siteID := tenant.SiteID
 	transferDest := tenant.Transfers.Default
 	callID := uuid.New().String()
 
 	// --- CTN /handle integration (replaces local VIP check when enabled) ---
 	if s.ctnClient != nil && callerID != "" {
-		resp, err := s.ctnClient.Handle(callID, notariaID, callerID)
+		resp, err := s.ctnClient.Handle(callID, siteID, callerID)
 		if err != nil {
 			s.logger.Warn("CTN /handle failed, falling back to local VIP check",
 				zap.String("ddi", ddi),
@@ -444,7 +444,7 @@ func (s *Server) checkRouting(c *gin.Context) {
 				s.logger.Info("Routing: CTN VIP transfer",
 					zap.String("ddi", ddi),
 					zap.String("caller_id", callerID),
-					zap.String("notaria_id", notariaID),
+					zap.String("site_id", siteID),
 					zap.String("vip_name", vipName),
 					zap.String("destination", dest))
 
@@ -452,7 +452,7 @@ func (s *Server) checkRouting(c *gin.Context) {
 					s.webhookClient.Send(webhook.Payload{
 						Event:         webhook.EventCallRouted,
 						InteractionID: callID,
-						NotariaID:     notariaID,
+						SiteID:     siteID,
 						CallerID:      callerID,
 						DDI:           ddi,
 						Direction:     "inbound",
@@ -464,16 +464,16 @@ func (s *Server) checkRouting(c *gin.Context) {
 					})
 				}
 
-				c.String(http.StatusOK, "vip|%s|%s|vip", notariaID, dest)
+				c.String(http.StatusOK, "vip|%s|%s|vip", siteID, dest)
 				return
 
 			case "reject":
 				s.logger.Info("Routing: CTN rejected call",
 					zap.String("ddi", ddi),
 					zap.String("caller_id", callerID),
-					zap.String("notaria_id", notariaID))
+					zap.String("site_id", siteID))
 
-				c.String(http.StatusOK, "reject|%s||rejected", notariaID)
+				c.String(http.StatusOK, "reject|%s||rejected", siteID)
 				return
 
 			case "progress":
@@ -489,13 +489,13 @@ func (s *Server) checkRouting(c *gin.Context) {
 		s.logger.Info("Routing: VIP caller detected (local)",
 			zap.String("ddi", ddi),
 			zap.String("caller_id", callerID),
-			zap.String("notaria_id", notariaID))
+			zap.String("site_id", siteID))
 
 		if s.webhookClient != nil {
 			s.webhookClient.Send(webhook.Payload{
 				Event:         webhook.EventCallRouted,
 				InteractionID: callID,
-				NotariaID:     notariaID,
+				SiteID:     siteID,
 				CallerID:      callerID,
 				DDI:           ddi,
 				Direction:     "inbound",
@@ -507,7 +507,7 @@ func (s *Server) checkRouting(c *gin.Context) {
 			})
 		}
 
-		c.String(http.StatusOK, "vip|%s|%s|vip", notariaID, transferDest)
+		c.String(http.StatusOK, "vip|%s|%s|vip", siteID, transferDest)
 		return
 	}
 
@@ -516,14 +516,14 @@ func (s *Server) checkRouting(c *gin.Context) {
 	if !inHours {
 		s.logger.Info("Routing: outside business hours",
 			zap.String("ddi", ddi),
-			zap.String("notaria_id", notariaID),
+			zap.String("site_id", siteID),
 			zap.String("schedule", schedule))
 
 		if s.webhookClient != nil {
 			s.webhookClient.Send(webhook.Payload{
 				Event:         webhook.EventCallRouted,
 				InteractionID: callID,
-				NotariaID:     notariaID,
+				SiteID:     siteID,
 				CallerID:      callerID,
 				DDI:           ddi,
 				Direction:     "inbound",
@@ -535,12 +535,12 @@ func (s *Server) checkRouting(c *gin.Context) {
 			})
 		}
 
-		c.String(http.StatusOK, "closed|%s|%s|%s", notariaID, transferDest, schedule)
+		c.String(http.StatusOK, "closed|%s|%s|%s", siteID, transferDest, schedule)
 		return
 	}
 
 	// Normal: send to AI
-	c.String(http.StatusOK, "ai|%s||%s", notariaID, schedule)
+	c.String(http.StatusOK, "ai|%s||%s", siteID, schedule)
 }
 
 // =============================================================================
@@ -749,8 +749,8 @@ func (s *Server) createTenant(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if t.NotariaID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "notaria_id required"})
+	if t.SiteID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "site_id required"})
 		return
 	}
 
@@ -770,7 +770,7 @@ func (s *Server) createTenant(c *gin.Context) {
 	if t.CompanyID != "" {
 		if err := s.provisioner.Provision(t, s.apiKey, s.bridge.AMI()); err != nil {
 			s.logger.Warn("Dialplan provisioning failed (tenant created, provision manually)",
-				zap.String("notaria_id", t.NotariaID),
+				zap.String("site_id", t.SiteID),
 				zap.String("company_id", t.CompanyID),
 				zap.Error(err))
 		} else {
@@ -778,19 +778,19 @@ func (s *Server) createTenant(c *gin.Context) {
 		}
 	}
 
-	s.logger.Info("Tenant created", zap.String("notaria_id", t.NotariaID), zap.String("company_id", t.CompanyID))
-	c.JSON(http.StatusCreated, gin.H{"status": "created", "notaria_id": t.NotariaID, "dialplan_provisioned": dialplanOK})
+	s.logger.Info("Tenant created", zap.String("site_id", t.SiteID), zap.String("company_id", t.CompanyID))
+	c.JSON(http.StatusCreated, gin.H{"status": "created", "site_id": t.SiteID, "dialplan_provisioned": dialplanOK})
 }
 
 func (s *Server) updateTenant(c *gin.Context) {
-	notariaID := c.Param("id")
+	siteID := c.Param("id")
 
 	var t config.TenantConfig
 	if err := c.ShouldBindJSON(&t); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	t.NotariaID = notariaID
+	t.SiteID = siteID
 
 	if s.db != nil {
 		if err := s.db.UpdateTenant(t); err != nil {
@@ -806,7 +806,7 @@ func (s *Server) updateTenant(c *gin.Context) {
 	if t.CompanyID != "" {
 		if err := s.provisioner.Provision(t, s.apiKey, s.bridge.AMI()); err != nil {
 			s.logger.Warn("Dialplan re-provisioning failed",
-				zap.String("notaria_id", notariaID),
+				zap.String("site_id", siteID),
 				zap.String("company_id", t.CompanyID),
 				zap.Error(err))
 		} else {
@@ -814,42 +814,42 @@ func (s *Server) updateTenant(c *gin.Context) {
 		}
 	}
 
-	s.logger.Info("Tenant updated", zap.String("notaria_id", notariaID), zap.String("company_id", t.CompanyID))
-	c.JSON(http.StatusOK, gin.H{"status": "updated", "notaria_id": notariaID, "dialplan_provisioned": dialplanOK})
+	s.logger.Info("Tenant updated", zap.String("site_id", siteID), zap.String("company_id", t.CompanyID))
+	c.JSON(http.StatusOK, gin.H{"status": "updated", "site_id": siteID, "dialplan_provisioned": dialplanOK})
 }
 
 func (s *Server) deleteTenant(c *gin.Context) {
-	notariaID := c.Param("id")
+	siteID := c.Param("id")
 
 	// Read tenant before deleting to get company_id for dialplan cleanup
 	var companyID string
 	if s.db != nil {
-		if existing, err := s.db.GetTenant(notariaID); err == nil && existing != nil {
+		if existing, err := s.db.GetTenant(siteID); err == nil && existing != nil {
 			companyID = existing.CompanyID
 		}
 	}
 
 	if s.db != nil {
-		if err := s.db.DeleteTenant(notariaID); err != nil {
+		if err := s.db.DeleteTenant(siteID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	s.tenants.Remove(notariaID)
+	s.tenants.Remove(siteID)
 
 	// Remove dialplan file if it was provisioned
 	if companyID != "" {
 		if err := s.provisioner.Deprovision(companyID, s.bridge.AMI()); err != nil {
 			s.logger.Warn("Dialplan deprovision failed",
-				zap.String("notaria_id", notariaID),
+				zap.String("site_id", siteID),
 				zap.String("company_id", companyID),
 				zap.Error(err))
 		}
 	}
 
-	s.logger.Info("Tenant deleted", zap.String("notaria_id", notariaID), zap.String("company_id", companyID))
-	c.JSON(http.StatusOK, gin.H{"status": "deleted", "notaria_id": notariaID})
+	s.logger.Info("Tenant deleted", zap.String("site_id", siteID), zap.String("company_id", companyID))
+	c.JSON(http.StatusOK, gin.H{"status": "deleted", "site_id": siteID})
 }
 
 // =============================================================================
@@ -859,11 +859,11 @@ func (s *Server) deleteTenant(c *gin.Context) {
 func (s *Server) listCallHistory(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	notariaID := c.Query("notaria_id")
+	siteID := c.Query("site_id")
 	from := c.Query("from")
 	to := c.Query("to")
 
-	calls, total, err := s.db.ListCalls(page, limit, notariaID, from, to)
+	calls, total, err := s.db.ListCalls(page, limit, siteID, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

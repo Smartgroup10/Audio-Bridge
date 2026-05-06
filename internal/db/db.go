@@ -26,7 +26,7 @@ type CallRecord struct {
 	ID              string   `json:"id"`
 	CallerID        string   `json:"caller_id"`
 	DDI             string   `json:"ddi"`
-	NotariaID       string   `json:"notaria_id"`
+	SiteID          string   `json:"site_id"`
 	Direction       string   `json:"direction"`
 	State           string   `json:"state"`
 	CallType        string   `json:"call_type"`
@@ -61,7 +61,7 @@ type InteractionLog struct {
 
 // TenantRecord represents a tenant stored in the database
 type TenantRecord struct {
-	NotariaID string `json:"notaria_id"`
+	SiteID    string `json:"site_id"`
 	Name      string `json:"name"`
 	DDIs      string `json:"ddis"`
 	Enabled   int    `json:"enabled"`
@@ -88,7 +88,7 @@ type DashboardStats struct {
 	CallsActive      int     `json:"calls_active"`
 	AvgDuration      float64 `json:"avg_duration_seconds"`
 	TotalCalls       int     `json:"total_calls"`
-	ByNotaria        map[string]int `json:"by_notaria"`
+	BySite           map[string]int `json:"by_site"`
 	InboundToday     int     `json:"inbound_today"`
 	OutboundToday    int     `json:"outbound_today"`
 }
@@ -148,7 +148,7 @@ func (d *DB) migrate() error {
 			id TEXT PRIMARY KEY,
 			caller_id TEXT DEFAULT '',
 			ddi TEXT DEFAULT '',
-			notaria_id TEXT DEFAULT '',
+			site_id TEXT DEFAULT '',
 			direction TEXT DEFAULT '',
 			state TEXT DEFAULT '',
 			call_type TEXT DEFAULT '',
@@ -167,7 +167,7 @@ func (d *DB) migrate() error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS tenants (
-			notaria_id TEXT PRIMARY KEY,
+			site_id TEXT PRIMARY KEY,
 			name TEXT DEFAULT '',
 			ddis TEXT DEFAULT '[]',
 			enabled INTEGER DEFAULT 1,
@@ -186,7 +186,7 @@ func (d *DB) migrate() error {
 			metadata TEXT DEFAULT '{}',
 			FOREIGN KEY (call_id) REFERENCES calls(id)
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_calls_notaria ON calls(notaria_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_calls_notaria ON calls(site_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_calls_start ON calls(start_time)`,
 		`CREATE INDEX IF NOT EXISTS idx_calls_state ON calls(state)`,
 		`CREATE INDEX IF NOT EXISTS idx_logs_call ON interaction_logs(call_id)`,
@@ -234,12 +234,12 @@ func (d *DB) migrate() error {
 func (d *DB) InsertCall(c CallRecord) error {
 	_, err := d.conn.Exec(`
 		INSERT OR REPLACE INTO calls
-		(id, caller_id, ddi, notaria_id, direction, state, call_type, schedule,
+		(id, caller_id, ddi, site_id, direction, state, call_type, schedule,
 		 start_time, answer_time, end_time, duration_seconds, end_reason,
 		 transfer_dest, asterisk_channel, recording_caller, recording_ai,
 		 transcript_user, transcript_ai)
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		c.ID, c.CallerID, c.DDI, c.NotariaID, c.Direction, c.State,
+		c.ID, c.CallerID, c.DDI, c.SiteID, c.Direction, c.State,
 		c.CallType, c.Schedule, c.StartTime, c.AnswerTime, c.EndTime,
 		c.DurationSeconds, c.EndReason, c.TransferDest, c.AsteriskChannel,
 		c.RecordingCaller, c.RecordingAI, c.TranscriptUser, c.TranscriptAI,
@@ -258,13 +258,13 @@ func (d *DB) UpdateCallMP3(callID, callerMP3, aiMP3, mixedMP3 string) error {
 // GetCall retrieves a call by ID
 func (d *DB) GetCall(id string) (*CallRecord, error) {
 	var c CallRecord
-	err := d.conn.QueryRow(`SELECT id, caller_id, ddi, notaria_id, direction, state,
+	err := d.conn.QueryRow(`SELECT id, caller_id, ddi, site_id, direction, state,
 		call_type, schedule, start_time, answer_time, end_time, duration_seconds,
 		end_reason, transfer_dest, asterisk_channel, recording_caller, recording_ai,
 		recording_caller_mp3, recording_ai_mp3, recording_mixed_mp3,
 		transcript_user, transcript_ai, created_at
 		FROM calls WHERE id = ?`, id).Scan(
-		&c.ID, &c.CallerID, &c.DDI, &c.NotariaID, &c.Direction, &c.State,
+		&c.ID, &c.CallerID, &c.DDI, &c.SiteID, &c.Direction, &c.State,
 		&c.CallType, &c.Schedule, &c.StartTime, &c.AnswerTime, &c.EndTime,
 		&c.DurationSeconds, &c.EndReason, &c.TransferDest, &c.AsteriskChannel,
 		&c.RecordingCaller, &c.RecordingAI,
@@ -279,7 +279,7 @@ func (d *DB) GetCall(id string) (*CallRecord, error) {
 }
 
 // ListCalls returns paginated calls with optional filters
-func (d *DB) ListCalls(page, limit int, notariaID, from, to string) ([]CallRecord, int, error) {
+func (d *DB) ListCalls(page, limit int, siteID, from, to string) ([]CallRecord, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -291,9 +291,9 @@ func (d *DB) ListCalls(page, limit int, notariaID, from, to string) ([]CallRecor
 	where := "1=1"
 	args := []interface{}{}
 
-	if notariaID != "" {
-		where += " AND notaria_id = ?"
-		args = append(args, notariaID)
+	if siteID != "" {
+		where += " AND site_id = ?"
+		args = append(args, siteID)
 	}
 	if from != "" {
 		where += " AND start_time >= ?"
@@ -314,7 +314,7 @@ func (d *DB) ListCalls(page, limit int, notariaID, from, to string) ([]CallRecor
 	}
 
 	// Fetch page
-	query := fmt.Sprintf("SELECT id, caller_id, ddi, notaria_id, direction, state, call_type, schedule, start_time, answer_time, end_time, duration_seconds, end_reason, transfer_dest, asterisk_channel, recording_caller, recording_ai, recording_caller_mp3, recording_ai_mp3, recording_mixed_mp3, transcript_user, transcript_ai, created_at FROM calls WHERE %s ORDER BY start_time DESC LIMIT ? OFFSET ?", where)
+	query := fmt.Sprintf("SELECT id, caller_id, ddi, site_id, direction, state, call_type, schedule, start_time, answer_time, end_time, duration_seconds, end_reason, transfer_dest, asterisk_channel, recording_caller, recording_ai, recording_caller_mp3, recording_ai_mp3, recording_mixed_mp3, transcript_user, transcript_ai, created_at FROM calls WHERE %s ORDER BY start_time DESC LIMIT ? OFFSET ?", where)
 	args = append(args, limit, offset)
 
 	rows, err := d.conn.Query(query, args...)
@@ -326,7 +326,7 @@ func (d *DB) ListCalls(page, limit int, notariaID, from, to string) ([]CallRecor
 	var calls []CallRecord
 	for rows.Next() {
 		var c CallRecord
-		if err := rows.Scan(&c.ID, &c.CallerID, &c.DDI, &c.NotariaID, &c.Direction,
+		if err := rows.Scan(&c.ID, &c.CallerID, &c.DDI, &c.SiteID, &c.Direction,
 			&c.State, &c.CallType, &c.Schedule, &c.StartTime, &c.AnswerTime,
 			&c.EndTime, &c.DurationSeconds, &c.EndReason, &c.TransferDest,
 			&c.AsteriskChannel, &c.RecordingCaller, &c.RecordingAI,
@@ -343,7 +343,7 @@ func (d *DB) ListCalls(page, limit int, notariaID, from, to string) ([]CallRecor
 func (d *DB) GetDashboardStats(activeCalls int) (*DashboardStats, error) {
 	stats := &DashboardStats{
 		CallsActive: activeCalls,
-		ByNotaria:   make(map[string]int),
+		BySite:   make(map[string]int),
 	}
 
 	today := time.Now().Format("2006-01-02")
@@ -362,14 +362,14 @@ func (d *DB) GetDashboardStats(activeCalls int) (*DashboardStats, error) {
 	d.conn.QueryRow("SELECT COUNT(*) FROM calls WHERE date(start_time) = ? AND direction = 'outbound'", today).Scan(&stats.OutboundToday)
 
 	// By notaria today
-	rows, err := d.conn.Query("SELECT notaria_id, COUNT(*) FROM calls WHERE date(start_time) = ? GROUP BY notaria_id", today)
+	rows, err := d.conn.Query("SELECT site_id, COUNT(*) FROM calls WHERE date(start_time) = ? GROUP BY site_id", today)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
 			var nid string
 			var cnt int
 			if rows.Scan(&nid, &cnt) == nil {
-				stats.ByNotaria[nid] = cnt
+				stats.BySite[nid] = cnt
 			}
 		}
 	}
@@ -411,8 +411,8 @@ func (d *DB) GetCallLogs(callID string) ([]InteractionLog, error) {
 func (d *DB) InsertTenant(t config.TenantConfig) error {
 	j := t.ToJSON()
 	now := time.Now().Format(time.RFC3339)
-	_, err := d.conn.Exec(`INSERT INTO tenants (notaria_id, company_id, name, ddis, enabled, sip_trunk, config, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`,
-		j.NotariaID, j.CompanyID, j.Name, j.DDIs, boolToInt(t.Enabled), j.SIPTrunk, j.Config, now, now)
+	_, err := d.conn.Exec(`INSERT INTO tenants (site_id, company_id, name, ddis, enabled, sip_trunk, config, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`,
+		j.SiteID, j.CompanyID, j.Name, j.DDIs, boolToInt(t.Enabled), j.SIPTrunk, j.Config, now, now)
 	return err
 }
 
@@ -420,20 +420,20 @@ func (d *DB) InsertTenant(t config.TenantConfig) error {
 func (d *DB) UpdateTenant(t config.TenantConfig) error {
 	j := t.ToJSON()
 	now := time.Now().Format(time.RFC3339)
-	_, err := d.conn.Exec(`UPDATE tenants SET company_id=?, name=?, ddis=?, enabled=?, sip_trunk=?, config=?, updated_at=? WHERE notaria_id=?`,
-		j.CompanyID, j.Name, j.DDIs, boolToInt(t.Enabled), j.SIPTrunk, j.Config, now, j.NotariaID)
+	_, err := d.conn.Exec(`UPDATE tenants SET company_id=?, name=?, ddis=?, enabled=?, sip_trunk=?, config=?, updated_at=? WHERE site_id=?`,
+		j.CompanyID, j.Name, j.DDIs, boolToInt(t.Enabled), j.SIPTrunk, j.Config, now, j.SiteID)
 	return err
 }
 
 // DeleteTenant removes a tenant
-func (d *DB) DeleteTenant(notariaID string) error {
-	_, err := d.conn.Exec("DELETE FROM tenants WHERE notaria_id = ?", notariaID)
+func (d *DB) DeleteTenant(siteID string) error {
+	_, err := d.conn.Exec("DELETE FROM tenants WHERE site_id = ?", siteID)
 	return err
 }
 
 // ListTenants returns all tenants
 func (d *DB) ListTenants() ([]config.TenantConfig, error) {
-	rows, err := d.conn.Query("SELECT notaria_id, company_id, name, ddis, enabled, sip_trunk, config FROM tenants ORDER BY notaria_id")
+	rows, err := d.conn.Query("SELECT site_id, company_id, name, ddis, enabled, sip_trunk, config FROM tenants ORDER BY site_id")
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +443,7 @@ func (d *DB) ListTenants() ([]config.TenantConfig, error) {
 	for rows.Next() {
 		var j config.TenantConfigJSON
 		var enabled int
-		if err := rows.Scan(&j.NotariaID, &j.CompanyID, &j.Name, &j.DDIs, &enabled, &j.SIPTrunk, &j.Config); err != nil {
+		if err := rows.Scan(&j.SiteID, &j.CompanyID, &j.Name, &j.DDIs, &enabled, &j.SIPTrunk, &j.Config); err != nil {
 			return nil, err
 		}
 		j.Enabled = enabled == 1
@@ -453,11 +453,11 @@ func (d *DB) ListTenants() ([]config.TenantConfig, error) {
 }
 
 // GetTenant returns a single tenant
-func (d *DB) GetTenant(notariaID string) (*config.TenantConfig, error) {
+func (d *DB) GetTenant(siteID string) (*config.TenantConfig, error) {
 	var j config.TenantConfigJSON
 	var enabled int
-	err := d.conn.QueryRow("SELECT notaria_id, company_id, name, ddis, enabled, sip_trunk, config FROM tenants WHERE notaria_id = ?", notariaID).
-		Scan(&j.NotariaID, &j.CompanyID, &j.Name, &j.DDIs, &enabled, &j.SIPTrunk, &j.Config)
+	err := d.conn.QueryRow("SELECT site_id, company_id, name, ddis, enabled, sip_trunk, config FROM tenants WHERE site_id = ?", siteID).
+		Scan(&j.SiteID, &j.CompanyID, &j.Name, &j.DDIs, &enabled, &j.SIPTrunk, &j.Config)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -472,15 +472,15 @@ func (d *DB) GetTenant(notariaID string) (*config.TenantConfig, error) {
 // SyncTenantsFromConfig loads tenants from config YAML into DB (initial seed)
 func (d *DB) SyncTenantsFromConfig(tenants []config.TenantConfig) error {
 	for _, t := range tenants {
-		existing, err := d.GetTenant(t.NotariaID)
+		existing, err := d.GetTenant(t.SiteID)
 		if err != nil {
 			return err
 		}
 		if existing == nil {
 			if err := d.InsertTenant(t); err != nil {
-				return fmt.Errorf("inserting tenant %s: %w", t.NotariaID, err)
+				return fmt.Errorf("inserting tenant %s: %w", t.SiteID, err)
 			}
-			d.logger.Info("Seeded tenant from config", zap.String("notaria_id", t.NotariaID))
+			d.logger.Info("Seeded tenant from config", zap.String("site_id", t.SiteID))
 		}
 	}
 	return nil
@@ -501,7 +501,7 @@ func (d *DB) ListRecordings(page, limit int) ([]CallRecord, int, error) {
 	var total int
 	d.conn.QueryRow("SELECT COUNT(*) FROM calls WHERE recording_caller != '' OR recording_ai != ''").Scan(&total)
 
-	rows, err := d.conn.Query(`SELECT id, caller_id, ddi, notaria_id, direction, state, call_type, schedule, start_time, answer_time, end_time, duration_seconds, end_reason, transfer_dest, asterisk_channel, recording_caller, recording_ai, recording_caller_mp3, recording_ai_mp3, recording_mixed_mp3, transcript_user, transcript_ai, created_at
+	rows, err := d.conn.Query(`SELECT id, caller_id, ddi, site_id, direction, state, call_type, schedule, start_time, answer_time, end_time, duration_seconds, end_reason, transfer_dest, asterisk_channel, recording_caller, recording_ai, recording_caller_mp3, recording_ai_mp3, recording_mixed_mp3, transcript_user, transcript_ai, created_at
 		FROM calls WHERE recording_caller != '' OR recording_ai != ''
 		ORDER BY start_time DESC LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
@@ -512,7 +512,7 @@ func (d *DB) ListRecordings(page, limit int) ([]CallRecord, int, error) {
 	var calls []CallRecord
 	for rows.Next() {
 		var c CallRecord
-		if err := rows.Scan(&c.ID, &c.CallerID, &c.DDI, &c.NotariaID, &c.Direction,
+		if err := rows.Scan(&c.ID, &c.CallerID, &c.DDI, &c.SiteID, &c.Direction,
 			&c.State, &c.CallType, &c.Schedule, &c.StartTime, &c.AnswerTime,
 			&c.EndTime, &c.DurationSeconds, &c.EndReason, &c.TransferDest,
 			&c.AsteriskChannel, &c.RecordingCaller, &c.RecordingAI,

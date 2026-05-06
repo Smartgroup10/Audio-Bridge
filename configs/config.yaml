@@ -95,7 +95,7 @@ logging:
 # Tenants (Notarias)
 # =============================================================================
 tenants:
-  - notaria_id: "N001"
+  - site_id: "N001"
     name: "Notaria Garcia Lopez - Barcelona"
     ddis:
       - "934001234"
@@ -122,7 +122,7 @@ tenants:
         oficial: "202"
       group_hunt: "300"
 
-  - notaria_id: "N002"
+  - site_id: "N002"
     name: "Notaria Martinez Ruiz - Madrid"
     ddis:
       - "912005678"

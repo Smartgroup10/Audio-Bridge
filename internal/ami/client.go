@@ -315,6 +315,42 @@ func (c *Client) Transfer(channel, destination, context string) error {
 	return nil
 }
 
+// TransferManaged redirects a channel to the managed transfer context.
+// It sets channel variables so the dialplan knows the transfer destination
+// and can return the call to the bridge if nobody answers.
+func (c *Client) TransferManaged(channel, destination, bridgeAddr, callUUID string) error {
+	// Set variables the dialplan needs
+	if err := c.SetVar(channel, "TRANSFER_DEST", destination); err != nil {
+		return fmt.Errorf("setting TRANSFER_DEST: %w", err)
+	}
+	if err := c.SetVar(channel, "CALL_UUID", callUUID); err != nil {
+		return fmt.Errorf("setting CALL_UUID: %w", err)
+	}
+	if err := c.SetVar(channel, "BRIDGE_ADDR", bridgeAddr); err != nil {
+		return fmt.Errorf("setting BRIDGE_ADDR: %w", err)
+	}
+
+	// Redirect to managed transfer context
+	resp, err := c.sendAction(map[string]string{
+		"Action":   "Redirect",
+		"Channel":  channel,
+		"Context":  "notarias-transfer-managed",
+		"Exten":    "s",
+		"Priority": "1",
+	})
+	if err != nil {
+		return fmt.Errorf("AMI managed transfer redirect: %w", err)
+	}
+	if !resp.Success {
+		return fmt.Errorf("AMI managed transfer redirect failed: %s", resp.Message)
+	}
+	c.logger.Info("AMI managed transfer initiated",
+		zap.String("channel", channel),
+		zap.String("destination", destination),
+		zap.String("uuid", callUUID))
+	return nil
+}
+
 // Hangup hangs up a channel
 func (c *Client) Hangup(channel string) error {
 	resp, err := c.sendAction(map[string]string{

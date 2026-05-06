@@ -252,8 +252,8 @@ type MP3Paths struct {
 }
 
 // ConvertCallRecordings converts all WAV recordings for a call to MP3.
-// Returns the MP3 file paths. Naming: {notariaID}_{callerID}_{date}_{time}_{callIDshort}_{channel}.mp3
-func ConvertCallRecordings(callerWAV, aiWAV, notariaID, callerID, callID string, logger *zap.Logger) (*MP3Paths, error) {
+// Returns the MP3 file paths. Naming: {siteID}_{callerID}_{date}_{time}_{callIDshort}_{channel}.mp3
+func ConvertCallRecordings(callerWAV, aiWAV, siteID, callerID, callID string, logger *zap.Logger) (*MP3Paths, error) {
 	if callerWAV == "" && aiWAV == "" {
 		return nil, fmt.Errorf("no WAV recordings to convert")
 	}
@@ -263,7 +263,7 @@ func ConvertCallRecordings(callerWAV, aiWAV, notariaID, callerID, callID string,
 		dir = filepath.Dir(aiWAV)
 	}
 
-	// Build filename prefix: {notariaID}_{callerID}_{YYYYMMDD}_{HHMMSS}_{callIDshort}
+	// Build filename prefix: {siteID}_{callerID}_{YYYYMMDD}_{HHMMSS}_{callIDshort}
 	now := time.Now()
 	shortID := callID
 	if len(shortID) > 8 {
@@ -278,7 +278,7 @@ func ConvertCallRecordings(callerWAV, aiWAV, notariaID, callerID, callID string,
 	}, callerID)
 
 	prefix := fmt.Sprintf("%s_%s_%s_%s",
-		notariaID, safeCallerID,
+		siteID, safeCallerID,
 		now.Format("20060102"), now.Format("150405"))
 	prefix = fmt.Sprintf("%s_%s", prefix, shortID)
 
