@@ -94,7 +94,7 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 		HandshakeTimeout: time.Duration(c.aiCfg.TimeoutSec) * time.Second,
 	}
 	if u.Scheme == "wss" {
-		dialer.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS13}
+		dialer.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
 	c.logger.Info("Connecting to AI module",
