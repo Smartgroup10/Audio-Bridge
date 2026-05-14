@@ -63,6 +63,11 @@ type Client struct {
 	logger     *zap.Logger
 }
 
+// Token returns a fresh OAuth2 access token from the underlying TokenProvider.
+func (c *Client) Token() (string, error) {
+	return c.token.Token()
+}
+
 // NewClient creates a CTN API client. Returns nil if CTN is disabled.
 func NewClient(token *TokenProvider, cfg config.CTNConfig, logger *zap.Logger) *Client {
 	if !cfg.Enabled || cfg.BaseURL == "" {

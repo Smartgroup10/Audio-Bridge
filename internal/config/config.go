@@ -112,6 +112,7 @@ type CTNConfig struct {
 	TokenURL     string `yaml:"token_url"`      // KeyCloak token endpoint
 	ClientID     string `yaml:"client_id"`      // OAuth2 client ID
 	ClientSecret string `yaml:"client_secret"`  // OAuth2 client secret
+	WSURL        string `yaml:"ws_url"`         // Lakimi WebSocket endpoint (e.g. "ws://int-avn.ctnotariado.com/ws/stream")
 	TimeoutSec   int    `yaml:"timeout_sec"`    // HTTP request timeout (default 10)
 	RetryCount   int    `yaml:"retry_count"`    // Max retry attempts (default 3)
 	Enabled      bool   `yaml:"enabled"`        // Enable CTN integration

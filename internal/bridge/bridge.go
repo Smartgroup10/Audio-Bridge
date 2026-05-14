@@ -488,13 +488,33 @@ func (b *Bridge) HandleAudioSocket(ctx context.Context, asConn *audiosocket.Conn
 		aiClient = oaiClient
 
 	case "ctn":
-		// CTN/Lakimi mode: the external AI connects to us via WSS (not implemented yet).
-		// For now, fall back to transferring the call directly.
-		// TODO: implement WSS server for Lakimi when spec is available
-		logger.Warn("CTN mode: waiting for external AI connection (not yet implemented)")
-		b.fallbackTransfer(call, tenant, logger)
-		asConn.Close()
-		return
+		if b.ctn == nil {
+			logger.Error("CTN client not initialized")
+			b.fallbackTransfer(call, tenant, logger)
+			asConn.Close()
+			return
+		}
+		token, err := b.ctn.Token()
+		if err != nil {
+			logger.Error("CTN: failed to get OAuth token for WS", zap.Error(err))
+			b.fallbackTransfer(call, tenant, logger)
+			asConn.Close()
+			return
+		}
+		ctnAICfg := config.AIConfig{
+			Endpoint:    b.cfg.CTN.WSURL,
+			AuthType:    "bearer",
+			BearerToken: token,
+			TimeoutSec:  b.cfg.CTN.TimeoutSec,
+		}
+		wssClient := wssclient.NewClient(ctnAICfg, logger.Named("lakimi"))
+		if err := wssClient.Connect(ctx, connectParams); err != nil {
+			logger.Error("CTN Lakimi WS connect failed", zap.Error(err))
+			b.fallbackTransfer(call, tenant, logger)
+			asConn.Close()
+			return
+		}
+		aiClient = wssClient
 
 	default:
 		wssClient := wssclient.NewClient(b.cfg.AI, logger)

@@ -89,10 +89,12 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 		headers.Set("Authorization", "Bearer "+c.aiCfg.BearerToken)
 	}
 
-	// Dial with timeout and TLS 1.3 minimum
+	// Dial with timeout; only enforce TLS 1.3 for wss:// connections
 	dialer := websocket.Dialer{
 		HandshakeTimeout: time.Duration(c.aiCfg.TimeoutSec) * time.Second,
-		TLSClientConfig:  &tls.Config{MinVersion: tls.VersionTLS13},
+	}
+	if u.Scheme == "wss" {
+		dialer.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS13}
 	}
 
 	c.logger.Info("Connecting to AI module",
