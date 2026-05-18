@@ -60,23 +60,23 @@ func (c *Client) Connect(ctx context.Context, params ConnectParams) error {
 	}
 
 	q := u.Query()
-	q.Set("site_id", params.SiteID)
-	q.Set("caller_id", params.CallerID)
-	q.Set("interaction_id", params.InteractionID)
-	q.Set("call_type", params.CallType)
+	q.Set("siteId", params.SiteID)
+	q.Set("callerId", params.CallerID)
+	q.Set("callId", params.InteractionID)
+	q.Set("callType", params.CallType)
 	q.Set("schedule", params.Schedule)
-	q.Set("ddi_origin", params.DDIOrigin)
+	q.Set("ddiOrigin", params.DDIOrigin)
 	if params.ContextID != "" {
-		q.Set("context_id", params.ContextID)
+		q.Set("contextId", params.ContextID)
 	}
 	for k, v := range params.ContextData {
 		q.Set("ctx_"+k, v)
 	}
 	if params.CallState != "" {
-		q.Set("call_state", params.CallState)
+		q.Set("callState", params.CallState)
 	}
 	if params.TransferAttempt > 0 {
-		q.Set("transfer_attempt", strconv.Itoa(params.TransferAttempt))
+		q.Set("transferAttempt", strconv.Itoa(params.TransferAttempt))
 	}
 	u.RawQuery = q.Encode()
 
